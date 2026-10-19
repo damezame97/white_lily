@@ -4,9 +4,9 @@
 ![Minecraft](https://img.shields.io/badge/Minecraft-1.20.1-green.svg)
 ![Forge](https://img.shields.io/badge/Forge-47.4.10-orange.svg)
 
-White Lily 是一个面向 Minecraft Forge 1.20.1 的属性与生存机制扩展模组。它以自定义属性为核心，把饥饿、意志、法术、枪械和弓箭等系统串成一套可配置的角色成长框架，并与 Iron's Spells 'n Spellbooks、TaCZ、Curios 等模组联动。
+White Lily 是一个面向 Minecraft Forge 1.20.1 的模组。当前版本仍在开发中，功能介绍暂不提供。
 
-> White Lily is a custom attribute framework for Minecraft Forge 1.20.1, designed to work with Iron's Spells 'n Spellbooks and TaCZ.
+> White Lily is a Minecraft Forge 1.20.1 mod. Feature documentation is not available yet.
 
 ## 功能介绍
 
