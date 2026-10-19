@@ -8,17 +8,9 @@ White Lily 是一个面向 Minecraft Forge 1.20.1 的属性与生存机制扩展
 
 > White Lily is a custom attribute framework for Minecraft Forge 1.20.1, designed to work with Iron's Spells 'n Spellbooks and TaCZ.
 
-## 功能概览
+## 功能介绍
 
-- **18 个自定义玩家属性**：伤害抵抗、伤害减免、载重、全局法强/法抗、意志坚定值、意志坚韧度、铳械精通/增幅、法术增幅/暴击、箭术精通/箭矢暴击与暴击伤害、恢复间隔/回复血量/耐力/饱和储量。全部通过 `DeferredRegister` 注册，并同步到客户端。
-- **负重与生存压力**：载重值、耐力值、饱和储量与恢复间隔共同影响移动、饥饿和回血节奏。
-- **意志系统**：意志坚定值过低时会追加不受护甲和附魔影响的“梦魇”伤害；意志坚韧度用于抵抗削减。
-- **法术联动**：把 Iron's Spells 'n Spellbooks 的全部学派法强/法抗汇总为“全局法强/法抗”，并提供法术增幅与法术暴击。
-- **枪械与弓箭联动**：为 TaCZ 的枪械伤害提供铳械精通/增幅；为原版箭矢提供箭术精通、暴击概率与暴击伤害。
-- **状态效果**：`white_lily:impure_magic`（肮脏魔力）。
-- **物品与饰品**：魔力苹果、血肉之环、改良之躯、损坏占位符、命运罗盘，以及 Curios 的“改良”栏位。
-- **伤害类型**：`abnormal_mana`、`depletion`、`nightmare`、`shadow_damage`，均为数据包注册，带独立死亡提示。
-- **游戏规则 `Happy_mode`**：建世界时可开关；进入世界后以存档内记录为准，`/gamerule` 无法在游戏内篡改。
+暂不做介绍。
 
 ## 环境要求
 
