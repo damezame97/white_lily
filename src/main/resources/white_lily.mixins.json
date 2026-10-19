@@ -1,0 +1,19 @@
+{
+  "required": true,
+  "minVersion": "0.8",
+  "package": "com.damezame97.white_lily.mixin",
+  "compatibilityLevel": "JAVA_17",
+  "refmap": "white_lily.refmap.json",
+  "mixins": [
+    "MixinDamageSource",
+    "MixinFoodData",
+    "MixinFriendlyByteBuf",
+    "MixinInventory",
+    "MixinItemStack",
+    "MixinPlayer",
+    "MixinSlot"
+  ],
+  "injectors": {
+    "defaultRequire": 1
+  }
+}

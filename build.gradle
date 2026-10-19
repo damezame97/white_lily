@@ -1,0 +1,265 @@
+plugins {
+    id 'eclipse'
+    id 'idea'
+    id 'maven-publish'
+    id 'net.minecraftforge.gradle' version '[6.0,6.2)'
+    // ForgeGradle 6 自己不提供 mixin，混入靠官方的 MixinGradle 插件。
+    id 'org.spongepowered.mixin' version '0.7.38'
+}
+
+version = mod_version
+group = mod_group_id
+
+base {
+    archivesName = mod_id
+}
+
+// 1.18+ 起 Mojang 就给终端用户发 Java 17，因此本模组以 Java 17 为目标版本。
+java.toolchain.languageVersion = JavaLanguageVersion.of(17)
+
+println "Java: ${System.getProperty 'java.version'}, JVM: ${System.getProperty 'java.vm.version'} (${System.getProperty 'java.vendor'}), Arch: ${System.getProperty 'os.arch'}"
+minecraft {
+    // The mappings can be changed at any time and must be in the following format.
+    // Channel:   Version:
+    // official   MCVersion             Official field/method names from Mojang mapping files
+    // parchment  YYYY.MM.DD-MCVersion  Open community-sourced parameter names and javadocs layered on top of official
+    //
+    // You must be aware of the Mojang license when using the 'official' or 'parchment' mappings.
+    // See more information here: https://github.com/MinecraftForge/MCPConfig/blob/master/Mojang.md
+    //
+    // Parchment is an unofficial project maintained by ParchmentMC, separate from MinecraftForge
+    // Additional setup is needed to use their mappings: https://parchmentmc.org/docs/getting-started
+    //
+    // Use non-default mappings at your own risk. They may not always work.
+    // Simply re-run your setup task after changing the mappings to update your workspace.
+    mappings channel: mapping_channel, version: mapping_version
+
+    // When true, this property will have all Eclipse/IntelliJ IDEA run configurations run the "prepareX" task for the given run configuration before launching the game.
+    // In most cases, it is not necessary to enable.
+    // enableEclipsePrepareRuns = true
+    // enableIdeaPrepareRuns = true
+
+    // This property allows configuring Gradle's ProcessResources task(s) to run on IDE output locations before launching the game.
+    // It is REQUIRED to be set to true for this template to function.
+    // See https://docs.gradle.org/current/dsl/org.gradle.language.jvm.tasks.ProcessResources.html
+    copyIdeResources = true
+
+    // When true, this property will add the folder name of all declared run configurations to generated IDE run configurations.
+    // The folder name can be set on a run configuration using the "folderName" property.
+    // By default, the folder name of a run configuration is the name of the Gradle project containing it.
+    // generateRunFolders = true
+
+    // This property enables access transformers for use in development.
+    // They will be applied to the Minecraft artifact.
+    // The access transformer file can be anywhere in the project.
+    // However, it must be at "META-INF/accesstransformer.cfg" in the final mod jar to be loaded by Forge.
+    // This default location is a best practice to automatically put the file in the right place in the final jar.
+    // See https://docs.minecraftforge.net/en/latest/advanced/accesstransformers/ for more information.
+    // accessTransformer = file('src/main/resources/META-INF/accesstransformer.cfg')
+
+    // Default run configurations.
+    // These can be tweaked, removed, or duplicated as needed.
+    runs {
+        // applies to all the run configs below
+        configureEach {
+            workingDirectory project.file('run')
+
+            // Recommended logging data for a userdev environment
+            // The markers can be added/remove as needed separated by commas.
+            // "SCAN": For mods scan.
+            // "REGISTRIES": For firing of registry events.
+            // "REGISTRYDUMP": For getting the contents of all registries.
+            property 'forge.logging.markers', 'REGISTRIES'
+
+            // Recommended logging level for the console
+            // You can set various levels here.
+            // Please read: https://stackoverflow.com/questions/2031163/when-to-use-the-different-log-levels
+            property 'forge.logging.console.level', 'debug'
+
+            // 让「生产版」（非 fg.deobf）的模组 jar 里的 mixin 也能在开发环境生效。
+            // 开发环境里 Minecraft 类用的是官方名，而生产模组的 mixin 写的是 SRG 名（如 m_118136_）。
+            // 不加这两行，只要 run/mods 里放了带 mixin 的模组（Apothic Attributes、Iron's Spells 等），
+            // 启动就会在 mixin 应用阶段 FATAL：@Inject/@Shadow 找不到目标。
+            property 'mixin.env.remapRefMap', 'true'
+            property 'mixin.env.refMapRemappingFile', "${projectDir}/build/createSrgToMcp/output.srg"
+
+            mods {
+                "${mod_id}" {
+                    source sourceSets.main
+                }
+            }
+        }
+
+        client {
+            // Comma-separated list of namespaces to load gametests from. Empty = all namespaces.
+            property 'forge.enabledGameTestNamespaces', mod_id
+        }
+
+        server {
+            property 'forge.enabledGameTestNamespaces', mod_id
+            args '--nogui'
+        }
+
+        // This run config launches GameTestServer and runs all registered gametests, then exits.
+        // By default, the server will crash when no gametests are provided.
+        // The gametest system is also enabled by default for other run configs under the /test command.
+        gameTestServer {
+            property 'forge.enabledGameTestNamespaces', mod_id
+        }
+
+        data {
+            // 覆盖上面 configureEach 里设置的 workingDirectory
+            workingDirectory project.file('run-data')
+
+            // Specify the modid for data generation, where to output the resulting resource, and where to look for existing resources.
+            args '--mod', mod_id, '--all', '--output', file('src/generated/resources/'), '--existing', file('src/main/resources/')
+        }
+    }
+}
+
+// Include resources generated by data generators.
+sourceSets.main.resources { srcDir 'src/generated/resources' }
+
+// Mixin 配置：
+//   add(...)    把编译期生成的映射表（开发环境用官方名、生产环境用 SRG 名）写成 refmap。
+//               开发环境里 Minecraft 类用的是官方名，而打包后是 SRG 名；
+//               没有 refmap，@Inject 写的方法名在生产环境就会找不到目标。
+//   config(...) 把混入配置登记进 jar 的 manifest（MixinConfigs），Forge 启动时按它加载。
+mixin {
+    add sourceSets.main, "${mod_id}.refmap.json"
+    config "${mod_id}.mixins.json"
+}
+
+// Mixin 注解处理器的 POM 里没写依赖，而它自己要用 gson / guava。
+// 与其另引两份（离线环境解析不到缓存），不如直接把「编译期已有的那条类路径」拼到处理器路径上
+// —— Minecraft 本来就用 gson / guava，这份一定在。
+// 注意：Gradle 8 起不允许把 Configuration 当依赖加进别的 Configuration，所以只能用 tasks 里替换路径这种写法。
+tasks.withType(JavaCompile).configureEach {
+    options.annotationProcessorPath = configurations.annotationProcessor + files(sourceSets.main.compileClasspath)
+}
+
+repositories {
+    // 如需引入第三方模组作为依赖，在这里添加仓库。
+    // ForgeGradle 会自动加入 Forge maven 与 Maven Central。
+
+    // 第三方模组 jar 放 ./libs 下，用 flatDir 按文件名解析，再由 fg.deobf 反混淆。
+    // 开发环境必须走 fg.deobf（而不是把 jar 丢进 run/mods）：
+    // 生产版 jar 的 mixin 里 @Shadow 方法名已被 reobf 成 SRG 名（如 m_21244_），
+    // 开发环境里 Minecraft 类用的是官方名，不做反混淆就会在 mixin 应用阶段 FATAL。
+    flatDir {
+        dir 'libs'
+    }
+    // 若依赖 jar 放在 ./libs 下，可取消下面的注释：
+    // flatDir {
+    //     dir 'libs'
+    // }
+}
+
+dependencies {
+    // Minecraft / Forge 本体依赖，版本取自 gradle.properties。
+    // forge 依赖自带 "userdev" 分类器，ForgeGradle 会自动处理开发环境的映射。
+    minecraft "net.minecraftforge:forge:${minecraft_version}-${forge_version}"
+
+    // Mixin 注解处理器：负责生成 ${mod_id}.refmap.json。
+    // org.spongepowered:mixin 这个 jar 里自带处理器（META-INF/services/javax.annotation.processing.Processor），
+    // 所以不需要额外的 :processor 分类器产物。
+    annotationProcessor 'org.spongepowered:mixin:0.8.5'
+
+    // 《Iron's Spells 'n Spellbooks》及其全部前置，jar 放在项目根目录的 libs 下。
+    // fg.deobf 会把生产版 jar 反混淆成开发环境名，这样 mixin 才能在 dev 里应用。
+    runtimeOnly fg.deobf('local:player-animation-lib-forge:1.0.2-rc1+1.20')
+    runtimeOnly fg.deobf('local:geckolib-forge-1.20.1:4.8.4')
+    // Curios 额外需要 compileOnly：GameTest 要直接查它的栏位注册表（CuriosApi.getSlot）
+    compileOnly fg.deobf('local:curios-forge:5.14.1+1.20.1')
+    runtimeOnly fg.deobf('local:curios-forge:5.14.1+1.20.1')
+    runtimeOnly fg.deobf('local:irons_lib:1.20.1-2.1.0')
+    // ISS 额外需要 compileOnly：本模组的物品（魔力苹果）要直接调它的魔力 API
+    // （MagicData / SyncManaPacket / PacketDistributor）。
+    // compileOnly 让它参与编译但不打进成品；运行期仍由 runtimeOnly 提供。
+    compileOnly fg.deobf('local:irons_spellbooks:1.20.1-3.16.3')
+    runtimeOnly fg.deobf('local:irons_spellbooks:1.20.1-3.16.3')
+
+    // ===== 第二批第三方前置（jar 放在 ./libs，统一 runtimeOnly） =====
+    // 这 6 个 mod 都在 mods.toml 里声明为 mandatory 前置，
+    // 因此必须同时存在于运行期 classpath，否则 FML 会以「缺少前置」拒绝启动。
+    //
+    // Placebo + Apothic Attributes（modId 是 attributeslib，不是 apothic_attributes）
+    runtimeOnly fg.deobf('local:Placebo:1.20.1-8.6.3')
+    runtimeOnly fg.deobf('local:ApothicAttributes:1.20.1-1.3.7')
+    // Architectury + [Let's Do] API（同一 jar 内含 doapi 与 terraform）+ [Let's Do] Vinery（葡园酒香）
+    runtimeOnly fg.deobf('local:architectury:9.2.14-forge')
+    runtimeOnly fg.deobf('local:letsdo-API-forge:1.2.15-forge')
+    runtimeOnly fg.deobf('local:letsdo-vinery-forge:1.4.41')
+    // [TaCZ] 永恒枪械工坊：零
+    // compileOnly 是给「铳械精通 / 铳械增幅」的结算用的：那边要直接引用 TaCZ 的
+    // ModDamageTypes.BULLETS_TAG（tacz:bullets）来判定「枪械类型伤害」。
+    // 只参与编译、不打包；运行期仍由下面的 runtimeOnly 提供。
+    compileOnly fg.deobf('local:tacz-forge:1.20.1-1.1.8-hotfix')
+    runtimeOnly fg.deobf('local:tacz-forge:1.20.1-1.1.8-hotfix')
+    // IMBlocker：只把 jar 放进 libs 供客户端环境使用，不声明为前置。
+    // 它引用仅客户端类（net.minecraft.client.KeyMapping），一旦进运行期 classpath，
+    // 专用服务端（runGameTestServer）会在加载期直接崩：
+    //   RuntimeException: Attempted to load class net/minecraft/client/KeyMapping for invalid dist DEDICATED_SERVER
+    // 因此这里不能写 runtimeOnly。
+    // runtimeOnly fg.deobf('local:IMBlocker:5.5.4-forge+1.17-1.20.4')
+}
+
+// This block of code expands all declared replace properties in the specified resource targets.
+// A missing property will result in an error. Properties are expanded using ${} Groovy notation.
+// When "copyIdeResources" is enabled, this will also run before the game launches in IDE environments.
+// See https://docs.gradle.org/current/dsl/org.gradle.language.jvm.tasks.ProcessResources.html
+tasks.named('processResources', ProcessResources).configure {
+    var replaceProperties = [
+            minecraft_version: minecraft_version, minecraft_version_range: minecraft_version_range,
+            forge_version: forge_version, forge_version_range: forge_version_range,
+            loader_version_range: loader_version_range,
+            mod_id: mod_id, mod_name: mod_name, mod_license: mod_license, mod_version: mod_version,
+            mod_authors: mod_authors, mod_description: mod_description,
+    ]
+    inputs.properties replaceProperties
+
+    filesMatching(['META-INF/mods.toml', 'pack.mcmeta']) {
+        expand replaceProperties + [project: project]
+    }
+}
+
+// 把构建信息写进 manifest，运行时可通过 manifest 读取。
+tasks.named('jar', Jar).configure {
+    manifest {
+        attributes([
+                'Specification-Title'     : mod_id,
+                'Specification-Vendor'    : mod_authors,
+                'Specification-Version'   : '1', // We are version 1 of ourselves
+                'Implementation-Title'    : project.name,
+                'Implementation-Version'  : project.jar.archiveVersion,
+                'Implementation-Vendor'   : mod_authors,
+                'Implementation-Timestamp': new Date().format("yyyy-MM-dd'T'HH:mm:ssZ")
+        ])
+    }
+
+    // This is the preferred method to reobfuscate your jar file
+    finalizedBy 'reobfJar'
+}
+
+// However if you are in a multi-project build, dev time needs unobfed jar files, so you can delay the obfuscation until publishing by doing:
+// tasks.named('publish').configure {
+//     dependsOn 'reobfJar'
+// }
+
+// 使用 maven-publish 把构建结果发布到本项目内的 mcmodsrepo 目录。
+publishing {
+    publications {
+        register('mavenJava', MavenPublication) {
+            artifact jar
+        }
+    }
+    repositories {
+        maven {
+            url "file://${project.projectDir}/mcmodsrepo"
+        }
+    }
+}
+
+tasks.withType(JavaCompile).configureEach {
+    options.encoding = 'UTF-8' // Use the UTF-8 charset for Java compilation
+}

@@ -1,0 +1,137 @@
+# White Lily 模组声明文件（mods.toml）
+# 带占位符的内容由 build.gradle 的 processResources 任务从 gradle.properties 展开，
+# 因此这里不要直接写死版本号等内容。
+modLoader="javafml" #mandatory
+loaderVersion="${loader_version_range}" #mandatory
+license="${mod_license}"
+
+# 模组列表
+[[mods]] #mandatory
+modId="${mod_id}" #mandatory
+version="${mod_version}" #mandatory
+displayName="${mod_name}" #mandatory
+authors="${mod_authors}" #optional
+
+# 模组图像：文件放在 src/main/resources 根下，打包后位于 jar 根目录。
+# 512x512、带 alpha 的 PNG。
+logoFile="white_lilymod.png"
+
+# 显示测试：客户端与服务端的模组版本必须一致，否则连接界面会打红叉。
+# 本模组注入了属性注册表条目，两端版本不一致时无法安全连接。
+displayTest="MATCH_VERSION" #optional
+
+# 模组描述（在模组列表中显示）
+description='''${mod_description}
+
+You must install this mod and its dependencies simultaneously on both the client side and the mobile device; otherwise, a crash is inevitable
+（本模组必须同时在客户端与服务端安装其依赖，否则必然崩溃。）'''
+
+# 依赖声明
+[[dependencies.${mod_id}]] #optional
+    modId="forge" #mandatory
+    mandatory=true #mandatory
+    versionRange="${forge_version_range}" #mandatory
+    ordering="NONE"
+    side="BOTH"
+
+[[dependencies.${mod_id}]]
+    modId="minecraft"
+    mandatory=true
+    versionRange="${minecraft_version_range}"
+    ordering="NONE"
+    side="BOTH"
+
+# ---------------------------------------------------------------------------
+# Apothic Attributes（modId 是 attributeslib，不是 apothic_attributes）及其前置 Placebo。
+[[dependencies.${mod_id}]]
+    modId="placebo"
+    mandatory=true
+    versionRange="[8.6.0,)"
+    ordering="AFTER"
+    side="BOTH"
+
+[[dependencies.${mod_id}]]
+    modId="attributeslib"
+    mandatory=true
+    versionRange="[1.3.7,)"
+    ordering="AFTER"
+    side="BOTH"
+
+# ---------------------------------------------------------------------------
+# [Let's Do] Vinery（葡园酒香）及其前置：Architectury 与 [Let's Do] API。
+# doapi 所在的那一个 jar 里同时含 doapi 与 terraform 两个 mod，一并声明以固定加载顺序。
+[[dependencies.${mod_id}]]
+    modId="architectury"
+    mandatory=true
+    versionRange="[9.0.8,)"
+    ordering="AFTER"
+    side="BOTH"
+
+[[dependencies.${mod_id}]]
+    modId="doapi"
+    mandatory=true
+    versionRange="[1.2.15,)"
+    ordering="AFTER"
+    side="BOTH"
+
+[[dependencies.${mod_id}]]
+    modId="terraform"
+    mandatory=true
+    versionRange="[7.0.1,)"
+    ordering="AFTER"
+    side="BOTH"
+
+[[dependencies.${mod_id}]]
+    modId="vinery"
+    mandatory=true
+    versionRange="[1.4.41,)"
+    ordering="AFTER"
+    side="BOTH"
+
+# ---------------------------------------------------------------------------
+# [TaCZ] 永恒枪械工坊：零
+[[dependencies.${mod_id}]]
+    modId="tacz"
+    mandatory=true
+    versionRange="[1.1.8,)"
+    ordering="AFTER"
+    side="BOTH"
+
+# ---------------------------------------------------------------------------
+# 加载前置：Iron Spells and Spellbooks 及其全部前置。
+# 版本下限等于本机 mods 目录里实际安装、且经各自 jar 内 mods.toml 核对的版本。
+# ordering="AFTER" 让它们先于本模组完成注册。
+[[dependencies.${mod_id}]]
+    modId="playeranimator"
+    mandatory=true
+    versionRange="[1.0.2-rc1+1.20,)"
+    ordering="AFTER"
+    side="BOTH"
+
+[[dependencies.${mod_id}]]
+    modId="geckolib"
+    mandatory=true
+    versionRange="[4.8.2,)"
+    ordering="AFTER"
+    side="BOTH"
+
+[[dependencies.${mod_id}]]
+    modId="curios"
+    mandatory=true
+    versionRange="[5.14.1+1.20.1,)"
+    ordering="AFTER"
+    side="BOTH"
+
+[[dependencies.${mod_id}]]
+    modId="irons_lib"
+    mandatory=true
+    versionRange="[1.20.1-2,)"
+    ordering="AFTER"
+    side="BOTH"
+
+[[dependencies.${mod_id}]]
+    modId="irons_spellbooks"
+    mandatory=true
+    versionRange="[1.20.1-3,)"
+    ordering="AFTER"
+    side="BOTH"

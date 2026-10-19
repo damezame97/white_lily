@@ -1,0 +1,6 @@
+{
+  "order": 1000,
+  "size": 1,
+  "icon": "white_lily:slot/improvement",
+  "validators": ["curios:tag"]
+}
