@@ -1,0 +1,6 @@
+{
+  "type": "forge:add_features",
+  "step": "vegetal_decoration",
+  "features": "white_lily:hemp_patch",
+  "biomes": "#white_lily:hemp_habitats"
+}

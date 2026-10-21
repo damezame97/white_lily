@@ -280,8 +280,71 @@ public final class san_procedures
         if (event.getEntity() instanceof ServerPlayer player)
         {
             syncDefaultFromWorld(player);
+            refresh(player);
         }
     }
+
+    /** 只由死亡 Clone 调用，权威档位仍来自世界 Debugging_whitelilymod.json。 */
+    public static void resetForDeath(Player player)
+    {
+        player_variables.san(player).ifPresent(data -> {
+            data.resetAfterDeath();
+            data.setInitialized(false);
+            syncDefaultFromWorld(player);
+            // Clone 此刻还没换成客户端认得的实体ID；效果重评延后至 Respawn。
+            syncMeltdownModifier(player, data);
+            syncStateModifiers(player, State.of(currentSan(player)), data);
+        });
+    }
+
+    public static void refresh(Player player)
+    {
+        if (player.level().isClientSide) return;
+        player_variables.san(player).ifPresent(data -> {
+            syncMeltdownModifier(player, data);
+            syncStateModifiers(player, State.of(currentSan(player)), data);
+        });
+        com.damezame97.white_lily.infection.infection_symptoms.reevaluate(player);
+    }
+
+    /** 基于完成使用前的有效SAN决定档位；按有效值恢复，不重新初始化。 */
+    public static double restore(Player player, double low, double high)
+    {
+        if (player.level().isClientSide) return 0;
+        AttributeInstance instance = player.getAttribute(attributes.SAN.get());
+        if (instance == null) return 0;
+        double before = currentSan(player);
+        double gain = before >= NORMAL_MIN ? high : low;
+        if (!Double.isFinite(before) || !Double.isFinite(gain) || gain < 0) return 0;
+        double added = instance.getBaseValue();
+        for (var modifier : instance.getModifiers(AttributeModifier.Operation.ADDITION)) added += modifier.getAmount();
+        double factor = 1;
+        for (var modifier : instance.getModifiers(AttributeModifier.Operation.MULTIPLY_BASE)) factor += modifier.getAmount();
+        for (var modifier : instance.getModifiers(AttributeModifier.Operation.MULTIPLY_TOTAL)) factor *= 1 + modifier.getAmount();
+        if (!Double.isFinite(factor) || factor <= 0) return 0;
+        double target = attributes.SAN.get().sanitizeValue(before + gain);
+        if (target > before) instance.setBaseValue(instance.getBaseValue() + (target - added * factor) / factor);
+        refresh(player);
+        return currentSan(player) - before;
+    }
+
+    @SubscribeEvent
+    public static void onRespawn(PlayerEvent.PlayerRespawnEvent event)
+    {
+        Player player = event.getEntity();
+        refresh(player);
+        // 明确在新实体连接就绪后同步当前真实属性，避免旧面板缓存。
+        if (player instanceof ServerPlayer serverPlayer)
+        {
+            serverPlayer.connection.send(new net.minecraft.network.protocol.game.ClientboundUpdateAttributesPacket(
+                    player.getId(), player.getAttributes().getSyncableAttributes()));
+            for (var effect : player.getActiveEffects())
+                serverPlayer.connection.send(new net.minecraft.network.protocol.game.ClientboundUpdateMobEffectPacket(player.getId(), effect));
+        }
+    }
+
+    @SubscribeEvent
+    public static void onDimension(PlayerEvent.PlayerChangedDimensionEvent event) { refresh(event.getEntity()); }
 
     // ==================================================================
     // 五、每刻：状态修饰符、受伤计时器、融毁罚值
@@ -338,7 +401,8 @@ public final class san_procedures
             // restore_health 的扣除要「不扣到负数以下」，所以得先看当前值再决定扣多少。
             double current = valueWithout(restore, RESTORE_MODIFIER_ID);
             setModifier(player, attributes.RESTORE_HEALTH.get(), RESTORE_MODIFIER_ID, "restore_health",
-                    clampRestoreHealthReduction(current, collapse ? COLLAPSE_RESTORE_HEALTH_DELTA : 0.0D));
+                    com.damezame97.white_lily.infection.infection_recovery.safeReduction(restore, current,
+                            collapse ? COLLAPSE_RESTORE_HEALTH_DELTA : 0.0D));
         }
     }
 
@@ -634,6 +698,9 @@ public final class san_procedures
     /** 属性值，但先把自己那条修饰符摘掉（避免「读自己的结果再算自己」）。 */
     private static double valueWithout(AttributeInstance instance, UUID id)
     {
+        // 回复量的 SAN 下限必须基于未施加感染扣减的数值，避免两套下限互相反馈。
+        if (instance.getAttribute() == attributes.RESTORE_HEALTH.get())
+            return com.damezame97.white_lily.infection.infection_recovery.valueWithout(instance, id);
         AttributeModifier ours = instance.getModifier(id);
         if (ours == null)
         {

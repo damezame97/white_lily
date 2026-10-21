@@ -1,0 +1,13 @@
+{
+  "config": {
+    "biomes": "white_lily:bitterleaf_habitats",
+    "plant": {
+      "Name": "white_lily:bitterleaf"
+    },
+    "open_sky": true,
+    "maximum": 4,
+    "minimum": 2,
+    "probability": 0.15
+  },
+  "type": "white_lily:herb_patch"
+}

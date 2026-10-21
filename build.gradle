@@ -76,6 +76,9 @@ minecraft {
             // Please read: https://stackoverflow.com/questions/2031163/when-to-use-the-different-log-levels
             property 'forge.logging.console.level', 'debug'
 
+            // GeckoLib 示例只在开发环境注册；关闭它们以保持与启动器的注册表一致。
+            property 'geckolib.disable_examples', 'true'
+
             // 让「生产版」（非 fg.deobf）的模组 jar 里的 mixin 也能在开发环境生效。
             // 开发环境里 Minecraft 类用的是官方名，而生产模组的 mixin 写的是 SRG 名（如 m_118136_）。
             // 不加这两行，只要 run/mods 里放了带 mixin 的模组（Apothic Attributes、Iron's Spells 等），

@@ -1,0 +1,13 @@
+{
+  "type": "white_lily:herb_patch",
+  "config": {
+    "plant": {
+      "Name": "white_lily:wild_hemp"
+    },
+    "open_sky": true,
+    "biomes": "white_lily:hemp_habitats",
+    "maximum": 4,
+    "minimum": 2,
+    "probability": 0.1
+  }
+}

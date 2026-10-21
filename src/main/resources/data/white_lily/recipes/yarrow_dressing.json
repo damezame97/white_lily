@@ -1,0 +1,19 @@
+{
+  "type": "minecraft:crafting_shapeless",
+  "ingredients": [
+    {
+      "item": "white_lily:yarrow"
+    },
+    {
+      "item": "white_lily:yarrow"
+    },
+    {
+      "item": "white_lily:thin_cloth_strip"
+    }
+  ],
+  "result": {
+    "count": 1,
+    "item": "white_lily:yarrow_dressing"
+  },
+  "category": "misc"
+}

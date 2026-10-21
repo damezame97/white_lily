@@ -1,0 +1,27 @@
+{
+  "rewards": {
+    "recipes": [
+      "white_lily:clean_fine_bandage_honey"
+    ]
+  },
+  "criteria": {
+    "has_material": {
+      "trigger": "minecraft:inventory_changed",
+      "conditions": {
+        "items": [
+          {
+            "items": [
+              "white_lily:simple_bandage"
+            ]
+          }
+        ]
+      }
+    }
+  },
+  "requirements": [
+    [
+      "has_material"
+    ]
+  ],
+  "parent": "minecraft:recipes/root"
+}

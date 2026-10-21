@@ -1,0 +1,25 @@
+{
+  "rewards": {
+    "recipes": [
+      "white_lily:cork_stopper"
+    ]
+  },
+  "parent": "minecraft:recipes/root",
+  "criteria": {
+    "has_material": {
+      "conditions": {
+        "items": [
+          {
+            "tag": "white_lily:cork_logs"
+          }
+        ]
+      },
+      "trigger": "minecraft:inventory_changed"
+    }
+  },
+  "requirements": [
+    [
+      "has_material"
+    ]
+  ]
+}

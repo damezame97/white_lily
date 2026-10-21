@@ -1,0 +1,7 @@
+{
+  "textures": {
+    "cross": "white_lily:block/bitterleaf"
+  },
+  "render_type": "minecraft:cutout",
+  "parent": "minecraft:block/cross"
+}

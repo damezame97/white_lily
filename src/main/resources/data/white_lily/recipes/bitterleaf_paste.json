@@ -1,0 +1,19 @@
+{
+  "type": "minecraft:crafting_shapeless",
+  "ingredients": [
+    {
+      "item": "white_lily:bitterleaf"
+    },
+    {
+      "item": "white_lily:bitterleaf"
+    },
+    {
+      "item": "minecraft:slime_ball"
+    }
+  ],
+  "result": {
+    "count": 1,
+    "item": "white_lily:bitterleaf_paste"
+  },
+  "category": "misc"
+}

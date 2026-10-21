@@ -50,21 +50,53 @@ public final class creative_tabs
                     .icon(() -> new ItemStack(items.TAB_ICON.get()))
                     .displayItems((parameters, output) ->
                     {
-                        // ⚠ 这一栏至少要有一件物品，否则 shouldDisplay() 为 false，客户端任何一页都不会画它。
-                        // 之前的占位物品 items.TAB_ICON 已经撤掉（它只负责当标签图标），换成真物品：
+                        // 食物与饮品。
                         output.accept(items.MAGIC_APPLE.get());
                         output.accept(items.LOW_QUALITY_POTION.get());
-                        output.accept(items.BLANK_PRESCRIPTION.get());
-                        output.accept(items.REVEALED_PRESCRIPTION.get());
-                        output.accept(items.STORED_SUFFERING.get());
+                        output.accept(items.CALMING_FLOWER_TEA.get());
+
+                        // 医疗成品，由简易到精良。
+                        output.accept(items.SIMPLE_BANDAGE.get());
+                        output.accept(items.CLEAN_FINE_BANDAGE.get());
+                        output.accept(items.BITTERLEAF_PASTE.get());
+                        output.accept(items.YARROW_DRESSING.get());
+
+                        // 药草与种植物。
+                        output.accept(items.BITTERLEAF.get());
+                        output.accept(items.YARROW.get());
+                        output.accept(items.CALMING_FLOWER.get());
+                        output.accept(items.HEMP_SEEDS.get());
+                        output.accept(items.HEMP_STALK.get());
+
+                        // 基础材料与处方。
                         output.accept(items.COARSE_CLOTH.get());
                         output.accept(items.THIN_CLOTH_STRIP.get());
                         output.accept(items.CORK_STOPPER.get());
                         output.accept(items.BEESWAX_BLOCK.get());
                         output.accept(items.CHARCOAL_POWDER.get());
                         output.accept(items.BLANK_LABEL.get());
+                        output.accept(items.BLANK_PRESCRIPTION.get());
+                        output.accept(items.REVEALED_PRESCRIPTION.get());
+
+                        // 普通可获取饰品；作者的绑定改良饰品继续隐藏。
+                        output.accept(items.STORED_SUFFERING.get());
                     })
                     .build());
+
+    public static final RegistryObject<CreativeModeTab> MEDICAL_TESTS = CREATIVE_TABS.register("medical_tests", () ->
+            CreativeModeTab.builder().title(Component.translatable("itemGroup.white_lily.medical_tests"))
+                    .icon(() -> new ItemStack(items.POLLUTION_DETECTOR.get()))
+                    .withTabsAfter(MISGUIDED_DELICACIES.getId())
+                    .displayItems((parameters, output) -> {
+                        // 显示不依赖管理员权限，实际增减污染仍由服务端校验。
+                        output.accept(items.POLLUTION_DETECTOR.get());
+                        output.accept(items.POLLUTION_CHIP_SMALL.get());
+                        output.accept(items.POLLUTION_CHIP_MEDIUM.get());
+                        output.accept(items.POLLUTION_CHIP_LARGE.get());
+                        output.accept(items.CLEANSING_CHIP_SMALL.get());
+                        output.accept(items.CLEANSING_CHIP_MEDIUM.get());
+                        output.accept(items.CLEANSING_CHIP_LARGE.get());
+                    }).build());
 
     private creative_tabs()
     {

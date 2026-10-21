@@ -75,7 +75,7 @@ public final class items
     public static final RegistryObject<Item> STORED_SUFFERING =
             ITEMS.register(stored_suffering.NAME, stored_suffering::new);
 
-    /** 基础制作材料，只提供常显简介，暂不附加配方或其他功能。 */
+    /** 基础制作材料，按 Shift 查看简介。 */
     public static final RegistryObject<Item> COARSE_CLOTH =
             ITEMS.register("coarse_cloth", basic_material_item::new);
     public static final RegistryObject<Item> THIN_CLOTH_STRIP =
@@ -88,6 +88,31 @@ public final class items
             ITEMS.register("charcoal_powder", basic_material_item::new);
     public static final RegistryObject<Item> BLANK_LABEL =
             ITEMS.register("blank_label", basic_material_item::new);
+
+    public static final RegistryObject<Item> HEMP_SEEDS = ITEMS.register("hemp_seeds", hemp_seeds::new);
+    public static final RegistryObject<Item> HEMP_STALK = ITEMS.register("hemp_stalk", basic_material_item::new);
+
+    public static final RegistryObject<Item> SIMPLE_BANDAGE = ITEMS.register("simple_bandage", () -> new medical_item(medical_actions.Kind.SIMPLE));
+    public static final RegistryObject<Item> CLEAN_FINE_BANDAGE = ITEMS.register("clean_fine_bandage", () -> new medical_item(medical_actions.Kind.FINE));
+    public static final RegistryObject<Item> BITTERLEAF = ITEMS.register("bitterleaf", () -> new medical_herb_item(
+            com.damezame97.white_lily.block.medical_blocks.BITTERLEAF.get(), medical_actions.Kind.BITTERLEAF));
+    public static final RegistryObject<Item> YARROW = ITEMS.register("yarrow", () -> new medical_herb_item(
+            com.damezame97.white_lily.block.medical_blocks.YARROW.get(), medical_actions.Kind.YARROW));
+    public static final RegistryObject<Item> CALMING_FLOWER = ITEMS.register("calming_flower", () -> new medical_herb_item(
+            com.damezame97.white_lily.block.medical_blocks.CALMING_FLOWER.get(), medical_actions.Kind.FLOWER));
+    public static final RegistryObject<Item> BITTERLEAF_PASTE = ITEMS.register("bitterleaf_paste", () -> new medical_item(medical_actions.Kind.PASTE));
+    public static final RegistryObject<Item> YARROW_DRESSING = ITEMS.register("yarrow_dressing", () -> new medical_item(medical_actions.Kind.DRESSING));
+    public static final RegistryObject<Item> CALMING_FLOWER_TEA = ITEMS.register("calming_flower_tea", () -> new medical_item(medical_actions.Kind.TEA));
+    public static final RegistryObject<Item> POLLUTION_CHIP_SMALL = test("pollution_chip_small", 10, net.minecraft.ChatFormatting.WHITE);
+    public static final RegistryObject<Item> POLLUTION_CHIP_MEDIUM = test("pollution_chip_medium", 30, net.minecraft.ChatFormatting.BLUE);
+    public static final RegistryObject<Item> POLLUTION_CHIP_LARGE = test("pollution_chip_large", 100, net.minecraft.ChatFormatting.RED);
+    public static final RegistryObject<Item> CLEANSING_CHIP_SMALL = test("cleansing_chip_small", -10, net.minecraft.ChatFormatting.WHITE);
+    public static final RegistryObject<Item> CLEANSING_CHIP_MEDIUM = test("cleansing_chip_medium", -30, net.minecraft.ChatFormatting.BLUE);
+    public static final RegistryObject<Item> CLEANSING_CHIP_LARGE = test("cleansing_chip_large", -100, net.minecraft.ChatFormatting.RED);
+    public static final RegistryObject<Item> POLLUTION_DETECTOR = test("pollution_detector", 0, net.minecraft.ChatFormatting.WHITE);
+
+    private static RegistryObject<Item> test(String name, int delta, net.minecraft.ChatFormatting color)
+    { return ITEMS.register(name, () -> new pollution_test_item(delta, color)); }
 
     /**
      * 空饰品「血肉之环」——见 {@link flesh_ring}。

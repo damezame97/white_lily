@@ -13,6 +13,8 @@ public final class prescription_recipes
 
     public static final RegistryObject<RecipeSerializer<prescription_revealing_recipe>> REVEALING =
             SERIALIZERS.register("prescription_revealing", prescription_revealing_recipe.Serializer::new);
+    public static final RegistryObject<RecipeSerializer<durable_tool_recipe>> DURABLE_TOOL =
+            SERIALIZERS.register("durable_tool_shapeless", durable_tool_recipe.Serializer::new);
 
     private prescription_recipes()
     {

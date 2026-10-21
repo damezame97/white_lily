@@ -1,0 +1,13 @@
+{
+  "config": {
+    "biomes": "white_lily:yarrow_habitats",
+    "plant": {
+      "Name": "white_lily:yarrow"
+    },
+    "open_sky": true,
+    "maximum": 3,
+    "minimum": 1,
+    "probability": 0.1
+  },
+  "type": "white_lily:herb_patch"
+}

@@ -39,7 +39,19 @@ public class prescription_item extends Item
     public void appendHoverText(ItemStack stack, @Nullable Level level, List<Component> tooltip, TooltipFlag flag)
     {
         super.appendHoverText(stack, level, tooltip, flag);
-        tooltip.add(Component.translatable(getDescriptionId() + ".description").withStyle(ChatFormatting.GRAY));
+        appendDescription(tooltip, detail_tooltip.isExpanded(level));
+    }
+
+    public void appendDescription(List<Component> tooltip, boolean expanded)
+    {
+        if (expanded)
+        {
+            tooltip.add(Component.translatable(getDescriptionId() + ".description").withStyle(ChatFormatting.GRAY));
+        }
+        else
+        {
+            tooltip.add(detail_tooltip.hint());
+        }
     }
 
     @Override

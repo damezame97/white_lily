@@ -5,6 +5,7 @@ import com.damezame97.white_lily.crafting.prescription_recipes;
 import com.damezame97.white_lily.gamerule.happy_mode;
 import com.damezame97.white_lily.item.creative_tabs;
 import com.damezame97.white_lily.item.items;
+import com.damezame97.white_lily.infection.infection_network;
 import com.damezame97.white_lily.white_lilybuff.mob_effects;
 import com.mojang.logging.LogUtils;
 import net.minecraftforge.common.MinecraftForge;
@@ -55,6 +56,8 @@ public class white_lily
 
         // 物品与创造模式物品栏。注意顺序没有依赖：物品栏的图标是个 Supplier，渲染时才取。
         items.ITEMS.register(modEventBus);
+        com.damezame97.white_lily.block.medical_blocks.BLOCKS.register(modEventBus);
+        com.damezame97.white_lily.worldgen.medical_worldgen.FEATURES.register(modEventBus);
         creative_tabs.CREATIVE_TABS.register(modEventBus);
         prescription_recipes.SERIALIZERS.register(modEventBus);
 
@@ -71,10 +74,13 @@ public class white_lily
 
         // 注册 COMMON 配置，让 Forge 帮我们生成并加载配置文件
         context.registerConfig(ModConfig.Type.COMMON, Config.SPEC);
+        context.registerConfig(ModConfig.Type.SERVER, Config.SERVER_SPEC);
+        infection_network.register();
     }
 
     private void commonSetup(final FMLCommonSetupEvent event)
     {
+        event.enqueueWork(() -> ((com.damezame97.white_lily.white_lilybuff.bandaged) mob_effects.BANDAGED.get()).bindAttributes());
         if (Config.debugLogging)
         {
             LOGGER.info("White Lily: 已注册 {} 个自定义属性", attributes.ALL.size());

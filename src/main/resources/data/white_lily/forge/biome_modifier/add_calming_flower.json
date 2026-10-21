@@ -1,0 +1,6 @@
+{
+  "type": "forge:add_features",
+  "biomes": "#white_lily:calming_flower_habitats",
+  "step": "vegetal_decoration",
+  "features": "white_lily:calming_flower_patch"
+}

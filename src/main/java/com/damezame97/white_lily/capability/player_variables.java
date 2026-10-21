@@ -95,6 +95,16 @@ public final class player_variables
         return player.getCapability(SAN_STATE).resolve();
     }
 
+    public static final Capability<infection_state> INFECTION_STATE =
+            CapabilityManager.get(new CapabilityToken<>() { });
+    public static final ResourceLocation INFECTION_STATE_ID =
+            ResourceLocation.fromNamespaceAndPath(white_lily.MODID, "infection_state");
+
+    public static Optional<infection_state> infection(Player player)
+    {
+        return player.getCapability(INFECTION_STATE).resolve();
+    }
+
     /** 取玩家身上的消耗计数器；没挂着时返回空。 */
     public static Optional<hunger_state> hunger(Player player)
     {
@@ -124,6 +134,9 @@ public final class player_variables
             event.addCapability(PROGRESSIVE_TENSE_ID, new Provider());
             event.addCapability(HUNGER_STATE_ID, new HungerStateProvider());
             event.addCapability(SAN_STATE_ID, new SanStateProvider());
+            InfectionStateProvider infection = new InfectionStateProvider();
+            event.addCapability(INFECTION_STATE_ID, infection);
+            event.addListener(infection::invalidate);
         }
     }
 
@@ -131,34 +144,37 @@ public final class player_variables
     @SubscribeEvent
     public static void clone(PlayerEvent.Clone event)
     {
-        Optional<progressive_tense> old = get(event.getOriginal());
-        Optional<progressive_tense> current = get(event.getEntity());
-        if (old.isPresent() && current.isPresent())
+        event.getOriginal().reviveCaps();
+        try
         {
-            current.get().copyFrom(old.get());
-        }
-
-        Optional<hunger_state> oldHunger = hunger(event.getOriginal());
-        Optional<hunger_state> currentHunger = hunger(event.getEntity());
-        if (oldHunger.isPresent() && currentHunger.isPresent())
-        {
-            currentHunger.get().copyFrom(oldHunger.get());
-        }
-
-        Optional<san_state> oldSan = san(event.getOriginal());
-        Optional<san_state> currentSan = san(event.getEntity());
-        if (oldSan.isPresent() && currentSan.isPresent())
-        {
-            // 死亡重生不该继承融毁罚值/计时器（否则会变成必死循环），只有换维度才搬。
+            Optional<progressive_tense> old = get(event.getOriginal());
+            Optional<progressive_tense> current = get(event.getEntity());
+            if (old.isPresent() && current.isPresent()) current.get().copyFrom(old.get());
+            Optional<hunger_state> oldHunger = hunger(event.getOriginal());
+            Optional<hunger_state> currentHunger = hunger(event.getEntity());
+            if (oldHunger.isPresent() && currentHunger.isPresent()) currentHunger.get().copyFrom(oldHunger.get());
+            Optional<san_state> oldSan = san(event.getOriginal());
+            Optional<san_state> currentSan = san(event.getEntity());
             if (event.isWasDeath())
             {
-                currentSan.get().resetAfterDeath();
+                com.damezame97.white_lily.procedures.san_procedures.resetForDeath(event.getEntity());
             }
-            else
+            else if (oldSan.isPresent() && currentSan.isPresent())
             {
                 currentSan.get().copyFrom(oldSan.get());
+                var previous = event.getOriginal().getAttribute(com.damezame97.white_lily.attribute.attributes.SAN.get());
+                var replacement = event.getEntity().getAttribute(com.damezame97.white_lily.attribute.attributes.SAN.get());
+                if (previous != null && replacement != null) replacement.replaceFrom(previous);
+                for (var effect : java.util.List.of(
+                        com.damezame97.white_lily.white_lilybuff.mob_effects.BANDAGED.get(),
+                        com.damezame97.white_lily.white_lilybuff.mob_effects.WOUND_SUPPRESSION.get()))
+                {
+                    var instance = event.getOriginal().getEffect(effect);
+                    if (instance != null) event.getEntity().addEffect(new net.minecraft.world.effect.MobEffectInstance(instance));
+                }
             }
         }
+        finally { event.getOriginal().invalidateCaps(); }
     }
 
     /**
@@ -190,6 +206,28 @@ public final class player_variables
 
     private player_variables()
     {
+    }
+
+    private static final class InfectionStateProvider implements ICapabilitySerializable<CompoundTag>
+    {
+        private final infection_state data = new infection_state();
+        private LazyOptional<infection_state> value = LazyOptional.of(() -> data);
+
+        private void invalidate() { value.invalidate(); }
+
+        @Override
+        public <T> @org.jetbrains.annotations.NotNull LazyOptional<T> getCapability(
+                @org.jetbrains.annotations.NotNull Capability<T> capability, @org.jetbrains.annotations.Nullable Direction side)
+        {
+            // reviveCaps 只恢复外层开关；Clone 读取时也需要恢复内部句柄。
+            if (capability == INFECTION_STATE && !value.isPresent()) value = LazyOptional.of(() -> data);
+            return INFECTION_STATE.orEmpty(capability, value);
+        }
+
+        @Override
+        public CompoundTag serializeNBT() { return data.serializeNBT(); }
+        @Override
+        public void deserializeNBT(CompoundTag tag) { data.deserializeNBT(tag); }
     }
 
     /**

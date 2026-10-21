@@ -11,10 +11,12 @@
     "MixinInventory",
     "MixinItemStack",
     "MixinPlayer",
-    "MixinSlot"
+    "MixinSlot",
+    "infection.MixinInfectionSpellCost"
   ],
   "client": [
-    "client.MixinTitleScreen"
+    "client.MixinTitleScreen",
+    "client.MixinInfectionBlindness"
   ],
   "injectors": {
     "defaultRequire": 1

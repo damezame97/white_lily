@@ -1,0 +1,27 @@
+{
+  "rewards": {
+    "recipes": [
+      "white_lily:yarrow_dressing"
+    ]
+  },
+  "criteria": {
+    "has_material": {
+      "trigger": "minecraft:inventory_changed",
+      "conditions": {
+        "items": [
+          {
+            "items": [
+              "white_lily:yarrow"
+            ]
+          }
+        ]
+      }
+    }
+  },
+  "requirements": [
+    [
+      "has_material"
+    ]
+  ],
+  "parent": "minecraft:recipes/root"
+}

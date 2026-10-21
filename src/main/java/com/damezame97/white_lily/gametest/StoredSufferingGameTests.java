@@ -4,6 +4,7 @@ import com.damezame97.white_lily.attribute.attributes;
 import com.damezame97.white_lily.capability.suffering_capability;
 import com.damezame97.white_lily.capability.suffering_data;
 import com.damezame97.white_lily.item.items;
+import com.damezame97.white_lily.item.detail_tooltip;
 import com.damezame97.white_lily.procedures.stored_suffering_events;
 import com.damezame97.white_lily.white_lily;
 import com.damezame97.white_lily.white_lilycurio.stored_suffering;
@@ -483,9 +484,11 @@ public class StoredSufferingGameTests
         helper.assertTrue(Objects.equals(ring.getHoverName().getStyle().getColor(), TextColor.fromRgb(0xAA0000)), "名称应暗红");
         List<Component> tooltip = new ArrayList<>();
         ring.getItem().appendHoverText(ring, helper.getLevel(), tooltip, TooltipFlag.Default.NORMAL);
-        helper.assertTrue(tooltip.size() == 2, "未按 Shift 时只显示风味和展开提示");
+        helper.assertTrue(tooltip.size() == 1 && tooltip.get(0).equals(detail_tooltip.hint()),
+                "未按 Shift 时只显示展开提示，紫色风味也应收起");
         tooltip.clear();
         ((stored_suffering) ring.getItem()).appendDescription(tooltip, true);
+        helper.assertTrue(tooltip.size() == 9, "展开应包含紫色风味、四行简介和四行效果");
         helper.assertTrue(Objects.equals(tooltip.get(0).getStyle().getColor(), TextColor.fromRgb(0xAA00AA)), "风味应暗紫");
         for (int line = 1; line < tooltip.size(); line++)
         {

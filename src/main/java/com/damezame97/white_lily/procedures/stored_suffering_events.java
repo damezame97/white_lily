@@ -41,6 +41,9 @@ public final class stored_suffering_events
     @SubscribeEvent(priority = EventPriority.LOWEST)
     public static void onDamage(LivingDamageEvent event)
     {
+        if (event.getEntity() instanceof Player injured && !injured.level().isClientSide
+                && Float.isFinite(event.getAmount()) && event.getAmount() > 0)
+            com.damezame97.white_lily.infection.infection_symptom_rules.onHealthLoss(injured);
         if (!(event.getEntity() instanceof Player player) || player.level().isClientSide
                 || !player.isAlive() || player.isSpectator() || player.getAbilities().invulnerable
                 || event.getSource().is(DamageTypeTags.BYPASSES_INVULNERABILITY)
@@ -53,6 +56,9 @@ public final class stored_suffering_events
         {
             return;
         }
+        // 同一命中在戒指拆分/归还旧账前判断，延期到账没有进入这个入口。
+        if (com.damezame97.white_lily.infection.infection_damage.direct(event.getSource()))
+            com.damezame97.white_lily.infection.infection_symptom_rules.onDirectHit(player, actual);
         suffering_capability.get(player).ifPresent(data -> {
             List<SlotResult> rings = rings(player);
             Map<Integer, UUID> equipment = equipment(rings);

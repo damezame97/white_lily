@@ -1,0 +1,19 @@
+{
+  "type": "minecraft:crafting_shapeless",
+  "ingredients": [
+    {
+      "item": "white_lily:simple_bandage"
+    },
+    {
+      "item": "white_lily:yarrow_dressing"
+    },
+    {
+      "item": "minecraft:honey_bottle"
+    }
+  ],
+  "result": {
+    "count": 1,
+    "item": "white_lily:clean_fine_bandage"
+  },
+  "category": "misc"
+}

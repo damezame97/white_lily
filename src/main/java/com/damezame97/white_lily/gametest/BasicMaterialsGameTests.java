@@ -3,6 +3,8 @@ package com.damezame97.white_lily.gametest;
 import com.damezame97.white_lily.item.basic_material_item;
 import com.damezame97.white_lily.item.creative_tabs;
 import com.damezame97.white_lily.item.items;
+import com.damezame97.white_lily.item.detail_tooltip;
+import com.damezame97.white_lily.item.prescription_item;
 import com.damezame97.white_lily.white_lily;
 import net.minecraft.gametest.framework.GameTest;
 import net.minecraft.gametest.framework.GameTestHelper;
@@ -45,7 +47,11 @@ public class BasicMaterialsGameTests
                     "创造展示和搜索内容应包含：" + id);
             List<Component> tooltip = new ArrayList<>();
             item.appendHoverText(stack, helper.getLevel(), tooltip, TooltipFlag.Default.NORMAL);
-            helper.assertTrue(tooltip.size() == 3, "材料三行简介应直接显示：" + id);
+            helper.assertTrue(tooltip.size() == 1 && tooltip.get(0).equals(detail_tooltip.hint()),
+                    "材料默认只显示 Shift 提示：" + id);
+            tooltip.clear();
+            ((basic_material_item) item).appendDescription(tooltip, true);
+            helper.assertTrue(tooltip.size() == 3, "按住 Shift 应展开三行简介：" + id);
             for (Component line : tooltip)
             {
                 helper.assertTrue(Objects.equals(line.getStyle().getColor(), TextColor.fromRgb(0xAAAAAA)),
@@ -56,9 +62,13 @@ public class BasicMaterialsGameTests
         {
             List<Component> tooltip = new ArrayList<>();
             item.appendHoverText(new ItemStack(item), helper.getLevel(), tooltip, TooltipFlag.Default.NORMAL);
+            helper.assertTrue(tooltip.size() == 1 && tooltip.get(0).equals(detail_tooltip.hint()),
+                    "处方默认只显示 Shift 提示");
+            tooltip.clear();
+            ((prescription_item) item).appendDescription(tooltip, true);
             helper.assertTrue(tooltip.size() == 1
                     && Objects.equals(tooltip.get(0).getStyle().getColor(), TextColor.fromRgb(0xAAAAAA)),
-                    "处方简介应直接显示，无 Shift 提示");
+                    "按住 Shift 应显示处方的灰色简介");
         }
         helper.succeed();
     }

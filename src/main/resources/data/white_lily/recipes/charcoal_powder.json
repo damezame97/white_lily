@@ -1,0 +1,13 @@
+{
+  "type": "minecraft:crafting_shapeless",
+  "ingredients": [
+    {
+      "item": "minecraft:charcoal"
+    }
+  ],
+  "category": "misc",
+  "result": {
+    "count": 4,
+    "item": "white_lily:charcoal_powder"
+  }
+}

@@ -193,7 +193,7 @@ public final class load_capacity_procedures {
      * <p>整段对 {@code white_lily:load_burden} 伤害直接放行（不套加成、不再追加反噬），
      * 这是防递归的关键一条。</p>
      */
-    @SubscribeEvent(priority = EventPriority.LOWEST)
+    @SubscribeEvent(priority = EventPriority.LOW)
     public static void onLivingDamage(LivingDamageEvent event) {
         if (event.getAmount() <= 0.0F) {
             return;

@@ -1,0 +1,13 @@
+{
+  "config": {
+    "biomes": "white_lily:calming_flower_habitats",
+    "plant": {
+      "Name": "white_lily:calming_flower"
+    },
+    "open_sky": false,
+    "maximum": 1,
+    "minimum": 1,
+    "probability": 0.05
+  },
+  "type": "white_lily:herb_patch"
+}

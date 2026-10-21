@@ -1,0 +1,16 @@
+{
+  "type": "minecraft:crafting_shapeless",
+  "ingredients": [
+    {
+      "item": "minecraft:honeycomb"
+    },
+    {
+      "item": "minecraft:honey_bottle"
+    }
+  ],
+  "category": "misc",
+  "result": {
+    "count": 3,
+    "item": "white_lily:beeswax_block"
+  }
+}

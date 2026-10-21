@@ -1,0 +1,27 @@
+{
+  "rewards": {
+    "recipes": [
+      "white_lily:simple_bandage"
+    ]
+  },
+  "criteria": {
+    "has_material": {
+      "trigger": "minecraft:inventory_changed",
+      "conditions": {
+        "items": [
+          {
+            "items": [
+              "white_lily:coarse_cloth"
+            ]
+          }
+        ]
+      }
+    }
+  },
+  "requirements": [
+    [
+      "has_material"
+    ]
+  ],
+  "parent": "minecraft:recipes/root"
+}

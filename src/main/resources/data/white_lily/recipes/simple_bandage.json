@@ -1,0 +1,16 @@
+{
+  "type": "minecraft:crafting_shapeless",
+  "ingredients": [
+    {
+      "item": "white_lily:coarse_cloth"
+    },
+    {
+      "item": "white_lily:thin_cloth_strip"
+    }
+  ],
+  "result": {
+    "count": 2,
+    "item": "white_lily:simple_bandage"
+  },
+  "category": "misc"
+}

@@ -1,0 +1,6 @@
+{
+  "textures": {
+    "layer0": "white_lily:item/hemp_stalk"
+  },
+  "parent": "minecraft:item/generated"
+}
