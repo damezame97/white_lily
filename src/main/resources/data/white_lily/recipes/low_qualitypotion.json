@@ -1,0 +1,16 @@
+{
+  "type": "minecraft:crafting_shapeless",
+  "category": "misc",
+  "ingredients": [
+    { "item": "minecraft:apple" },
+    { "item": "minecraft:apple" },
+    { "item": "minecraft:apple" },
+    { "item": "minecraft:apple" },
+    {
+      "type": "forge:nbt",
+      "item": "minecraft:potion",
+      "nbt": "{Potion:\"minecraft:water\"}"
+    }
+  ],
+  "result": { "item": "white_lily:low_qualitypotion", "count": 1 }
+}

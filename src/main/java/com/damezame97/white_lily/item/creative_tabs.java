@@ -53,6 +53,16 @@ public final class creative_tabs
                         // ⚠ 这一栏至少要有一件物品，否则 shouldDisplay() 为 false，客户端任何一页都不会画它。
                         // 之前的占位物品 items.TAB_ICON 已经撤掉（它只负责当标签图标），换成真物品：
                         output.accept(items.MAGIC_APPLE.get());
+                        output.accept(items.LOW_QUALITY_POTION.get());
+                        output.accept(items.BLANK_PRESCRIPTION.get());
+                        output.accept(items.REVEALED_PRESCRIPTION.get());
+                        output.accept(items.STORED_SUFFERING.get());
+                        output.accept(items.COARSE_CLOTH.get());
+                        output.accept(items.THIN_CLOTH_STRIP.get());
+                        output.accept(items.CORK_STOPPER.get());
+                        output.accept(items.BEESWAX_BLOCK.get());
+                        output.accept(items.CHARCOAL_POWDER.get());
+                        output.accept(items.BLANK_LABEL.get());
                     })
                     .build());
 

@@ -1,6 +1,7 @@
 {
   "replace": false,
   "values": [
+    "#white_lily:suffering_settlement",
     "white_lily:abnormal_mana",
     "white_lily:depletion",
     "white_lily:nightmare"

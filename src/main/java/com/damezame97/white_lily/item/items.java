@@ -5,6 +5,7 @@ import com.damezame97.white_lily.white_lilycurio.fate_compass;
 import com.damezame97.white_lily.white_lilycurio.flesh_ring;
 import com.damezame97.white_lily.white_lilycurio.improve_body;
 import com.damezame97.white_lily.white_lilycurio.invalid_placeholder;
+import com.damezame97.white_lily.white_lilycurio.stored_suffering;
 import com.damezame97.white_lily.white_lilyfood.magic_apple;
 import net.minecraft.world.item.Item;
 import net.minecraftforge.registries.DeferredRegister;
@@ -58,6 +59,35 @@ public final class items
      */
     public static final RegistryObject<Item> MAGIC_APPLE =
             ITEMS.register(magic_apple.NAME, magic_apple::new);
+
+    /** 低质量药剂：三维瓶身，饮用恢复魔力并可能附加副作用，返还玻璃瓶。 */
+    public static final RegistryObject<Item> LOW_QUALITY_POTION =
+            ITEMS.register(low_quality_potion.NAME, low_quality_potion::new);
+
+    /** 可浸水显字的普通材料。 */
+    public static final RegistryObject<Item> BLANK_PRESCRIPTION =
+            ITEMS.register("blank_prescription", prescription_item::new);
+
+    /** 后续药剂制作材料，暂不附加药效。 */
+    public static final RegistryObject<Item> REVEALED_PRESCRIPTION =
+            ITEMS.register("revealed_prescription", prescription_item::new);
+
+    public static final RegistryObject<Item> STORED_SUFFERING =
+            ITEMS.register(stored_suffering.NAME, stored_suffering::new);
+
+    /** 基础制作材料，只提供常显简介，暂不附加配方或其他功能。 */
+    public static final RegistryObject<Item> COARSE_CLOTH =
+            ITEMS.register("coarse_cloth", basic_material_item::new);
+    public static final RegistryObject<Item> THIN_CLOTH_STRIP =
+            ITEMS.register("thin_cloth_strip", basic_material_item::new);
+    public static final RegistryObject<Item> CORK_STOPPER =
+            ITEMS.register("cork_stopper", basic_material_item::new);
+    public static final RegistryObject<Item> BEESWAX_BLOCK =
+            ITEMS.register("beeswax_block", basic_material_item::new);
+    public static final RegistryObject<Item> CHARCOAL_POWDER =
+            ITEMS.register("charcoal_powder", basic_material_item::new);
+    public static final RegistryObject<Item> BLANK_LABEL =
+            ITEMS.register("blank_label", basic_material_item::new);
 
     /**
      * 空饰品「血肉之环」——见 {@link flesh_ring}。

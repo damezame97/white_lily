@@ -1,6 +1,7 @@
 package com.damezame97.white_lily;
 
 import com.damezame97.white_lily.attribute.attributes;
+import com.damezame97.white_lily.crafting.prescription_recipes;
 import com.damezame97.white_lily.gamerule.happy_mode;
 import com.damezame97.white_lily.item.creative_tabs;
 import com.damezame97.white_lily.item.items;
@@ -55,6 +56,7 @@ public class white_lily
         // 物品与创造模式物品栏。注意顺序没有依赖：物品栏的图标是个 Supplier，渲染时才取。
         items.ITEMS.register(modEventBus);
         creative_tabs.CREATIVE_TABS.register(modEventBus);
+        prescription_recipes.SERIALIZERS.register(modEventBus);
 
         // 状态效果（white_lilybuff 包）。
         // 注意：伤害类型<b>不</b>在这里注册——它是数据包注册表（minecraft:damage_type），
