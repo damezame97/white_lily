@@ -5,6 +5,9 @@ import com.damezame97.white_lily.item.creative_tabs;
 import com.damezame97.white_lily.item.items;
 import com.damezame97.white_lily.procedures.damage_mitigation_procedures;
 import com.damezame97.white_lily.procedures.archery_procedures;
+import com.damezame97.white_lily.procedures.load_capacity_procedures;
+import com.damezame97.white_lily.procedures.san_behaviour_pool;
+import com.damezame97.white_lily.procedures.san_procedures;
 import com.damezame97.white_lily.procedures.rifle_procedures;
 import com.damezame97.white_lily.procedures.spell_damage_procedures;
 import com.damezame97.white_lily.procedures.spell_power_procedures;
@@ -12,6 +15,10 @@ import com.damezame97.white_lily.white_lily;
 import com.damezame97.white_lily.white_lilybuff.mob_effects;
 import com.damezame97.white_lily.white_lilydamage.abnormal_mana;
 import com.damezame97.white_lily.white_lilydamage.depletion;
+import com.damezame97.white_lily.white_lilydamage.load_burden;
+import com.damezame97.white_lily.white_lilydamage.meltdown;
+import com.damezame97.white_lily.white_lilydamage.mental_injury;
+import com.damezame97.white_lily.white_lilydamage.remit_loadcapacity;
 import com.damezame97.white_lily.white_lilydamage.nightmare;
 import com.damezame97.white_lily.white_lilydamage.shadow_damage;
 import com.damezame97.white_lily.white_lilycurio.curio_events;
@@ -19,6 +26,7 @@ import com.damezame97.white_lily.white_lilycurio.curio_slots;
 import com.damezame97.white_lily.capability.player_variables;
 import com.damezame97.white_lily.capability.progressive_tense;
 import com.damezame97.white_lily.capability.hunger_state;
+import com.damezame97.white_lily.capability.san_state;
 import com.damezame97.white_lily.debugging.debug_file;
 import com.damezame97.white_lily.gamerule.happy_mode;
 import com.damezame97.white_lily.gamerule.happy_mode_food;
@@ -26,6 +34,7 @@ import com.damezame97.white_lily.gamerule.happy_mode_hunger;
 import com.damezame97.white_lily.gamerule.hunger_activity;
 import com.damezame97.white_lily.white_lilycurio.invalid_placeholder;
 import com.damezame97.white_lily.white_lilycurio.improvement_loadout;
+import com.damezame97.white_lily.white_lilycurio.phantom_fragments_slots;
 import com.damezame97.white_lily.white_lilyfood.magic_apple;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
@@ -1794,7 +1803,7 @@ public final class WhiteLilyGameTests {
 
             AttributeInstance speed = player.getAttribute(Attributes.MOVEMENT_SPEED);
             double normalSpeed = speed.getValue();
-            AttributeInstance spirit = player.getAttribute(attributes.STEADFAST_IN_SPIRIT.get());
+            AttributeInstance spirit = player.getAttribute(attributes.SAN.get());
             double normalSpirit = spirit.getBaseValue();
 
             hunger_activity.tick(player);   // 第 1 刻：挂修正、起计时
@@ -2397,7 +2406,12 @@ public final class WhiteLilyGameTests {
 
         helper.assertTrue(Math.abs((crit - plain) - 4.0F) < 0.01F,
                 "触发暴击应当比不触发多掉 4 点梦魇伤害，实测多掉 " + (crit - plain)
-                        + "（对照 " + plain + "，触发 " + crit + "）");
+                        + "（对照 " + plain + "，触发 " + crit
+                        + "，critDmg=" + shooter.getAttributeValue(attributes.ARROW_CRIT_DAMAGE.get())
+                        + "，expertise=" + shooter.getAttributeValue(attributes.EXPERT_IN_ARCHERY.get())
+                        + "，load=" + shooter.getAttributeValue(attributes.LOAD_CAPACITY.get())
+                        + "，san=" + san_procedures.currentSan(shooter)
+                        + "，state=" + san_procedures.State.of(san_procedures.currentSan(shooter)).key() + "）");
         helper.succeed();
     }
 
@@ -2445,9 +2459,31 @@ public final class WhiteLilyGameTests {
 
     /** 给玩家设上箭术精通 / 箭矢暴击 / 箭矢暴击伤害。 */
     private static void setArcheryAttributes(Player player, double expertise, double strike, double critDamage) {
+        silenceApothicCrit(player);
         player.getAttribute(attributes.EXPERT_IN_ARCHERY.get()).setBaseValue(expertise);
         player.getAttribute(attributes.ARROW_STRIKE.get()).setBaseValue(strike);
         player.getAttribute(attributes.ARROW_CRIT_DAMAGE.get()).setBaseValue(critDamage);
+    }
+
+    /**
+     * 把 Apothic Attributes 的随机暴击属性摆零。
+     *
+     * <p>{@code attributeslib} 会在 {@code LivingHurtEvent} 里按 {@code crit_chance} 随机给玩家
+     * 的伤害乘一个系数（默认非 0），这会让「真实掉血量差值」的断言变成掷骰子——
+     * 之前这两条箭术测试就因此偶尔多出 1.25 倍。这里用名字查属性、直接压到 0，
+     * 不引入编译期依赖（本模组只是 runtimeOnly 装了 Apothic）。</p>
+     */
+    private static void silenceApothicCrit(LivingEntity entity) {
+        for (String id : new String[]{"attributeslib:crit_chance", "attributeslib:crit_damage"}) {
+            Attribute attribute = ForgeRegistries.ATTRIBUTES.getValue(new ResourceLocation(id));
+            if (attribute == null) {
+                continue;
+            }
+            AttributeInstance instance = entity.getAttribute(attribute);
+            if (instance != null) {
+                instance.setBaseValue(0.0D);
+            }
+        }
     }
 
     /** 造一个 {@code minecraft:arrow} 的伤害源（直接/造成实体都填射手）。 */
@@ -2464,6 +2500,614 @@ public final class WhiteLilyGameTests {
         float before = victim.getHealth();
         helper.assertTrue(victim.hurt(arrowSource(helper, shooter), amount), "这一箭应当打中");
         return before - victim.getHealth();
+    }
+
+    // ==================================================================
+    // 十四、载重值（procedures 包）
+    // ==================================================================
+
+    /** 默认值按世界档位：和平 150 / 简单 140 / 普通 120 / 困难 100。 */
+    @GameTest(template = TEMPLATE)
+    public static void loadCapacityDefaultsFollowWorldLevel(GameTestHelper helper) {
+        expect(helper, 150.0D, load_capacity_procedures.loadCapacityForLevel(1), "和平档位应当是 150");
+        expect(helper, 140.0D, load_capacity_procedures.loadCapacityForLevel(2), "简单档位应当是 140");
+        expect(helper, 120.0D, load_capacity_procedures.loadCapacityForLevel(3), "普通档位应当是 120");
+        expect(helper, 100.0D, load_capacity_procedures.loadCapacityForLevel(4), "困难档位应当是 100");
+
+        expect(helper, 150.0D, load_capacity_procedures.loadCapacityForDifficulty(Difficulty.PEACEFUL),
+                "和平难度应当映射到 150");
+        expect(helper, 140.0D, load_capacity_procedures.loadCapacityForDifficulty(Difficulty.EASY),
+                "简单难度应当映射到 140");
+        expect(helper, 120.0D, load_capacity_procedures.loadCapacityForDifficulty(Difficulty.NORMAL),
+                "普通难度应当映射到 120");
+        expect(helper, 100.0D, load_capacity_procedures.loadCapacityForDifficulty(Difficulty.HARD),
+                "困难难度应当映射到 100");
+        helper.succeed();
+    }
+
+    /** 阶梯与倍率：99~90 每低 1 个整数 +20% 受到 / +10% 造成；89 以下开始算反噬百分比。 */
+    @GameTest(template = TEMPLATE)
+    public static void loadCapacityStepsAndMultipliers(GameTestHelper helper) {
+        // 100 → 0 步：无任何影响
+        helper.assertTrue(load_capacity_procedures.stepsBelowHundred(100.0D) == 0, "100 应当是 0 步");
+        expect(helper, 1.0D, load_capacity_procedures.receivedMultiplier(100.0D), "100 时受到倍率 1.0");
+        expect(helper, 1.0D, load_capacity_procedures.dealtMultiplier(100.0D), "100 时造成倍率 1.0");
+        expect(helper, 0.0D, load_capacity_procedures.burdenFraction(100.0D), "100 时无反噬");
+
+        // 94 → 6 步 → 受到 ×2.2、造成 ×1.6
+        helper.assertTrue(load_capacity_procedures.stepsBelowHundred(94.0D) == 6, "94 应当是 6 步");
+        expect(helper, 2.2D, load_capacity_procedures.receivedMultiplier(94.0D), "94 时受到倍率 2.2");
+        expect(helper, 1.6D, load_capacity_procedures.dealtMultiplier(94.0D), "94 时造成倍率 1.6");
+        expect(helper, 0.0D, load_capacity_procedures.burdenFraction(94.0D), "94 还不到反噬线");
+
+        // 90 → 10 步 → 受到 ×3.0、造成 ×2.0，反噬仍为 0
+        expect(helper, 3.0D, load_capacity_procedures.receivedMultiplier(90.0D), "90 时受到倍率 3.0");
+        expect(helper, 2.0D, load_capacity_procedures.dealtMultiplier(90.0D), "90 时造成倍率 2.0");
+        expect(helper, 0.0D, load_capacity_procedures.burdenFraction(90.0D), "90 时还无反噬");
+
+        // 89 → 两项加成不变，反噬 100%
+        expect(helper, 3.0D, load_capacity_procedures.receivedMultiplier(89.0D), "89 时受到倍率仍是 3.0");
+        expect(helper, 2.0D, load_capacity_procedures.dealtMultiplier(89.0D), "89 时造成倍率仍是 2.0");
+        expect(helper, 1.0D, load_capacity_procedures.burdenFraction(89.0D), "89 时反噬应当是 100%");
+
+        // 1 → 8900% 被夹到 5000%（需求里的原例）
+        expect(helper, 50.0D, load_capacity_procedures.burdenFraction(1.0D), "1 时反噬应当夹到 5000%");
+        expect(helper, 50.0D, load_capacity_procedures.burdenFraction(0.0D), "0 时反噬也夹到 5000%");
+        expect(helper, 3.0D, load_capacity_procedures.receivedMultiplier(1.0D), "1 时受到倍率仍是 3.0");
+        expect(helper, 2.0D, load_capacity_procedures.dealtMultiplier(1.0D), "1 时造成倍率仍是 2.0");
+        helper.succeed();
+    }
+
+    /** 反噬伤害 = 生命上限 × 百分比，并有 1e9 的硬上限（防止 float 溢出归零）。 */
+    @GameTest(template = TEMPLATE)
+    public static void loadCapacityBurdenDamageUsesMaxHealthAndCap(GameTestHelper helper) {
+        expect(helper, 20.0D, load_capacity_procedures.burdenDamage(20.0D, 89.0D), "20 血 × 100% = 20");
+        expect(helper, 1000.0D, load_capacity_procedures.burdenDamage(20.0D, 1.0D), "20 血 × 5000% = 1000");
+        expect(helper, 0.0D, load_capacity_procedures.burdenDamage(20.0D, 100.0D), "100 时反噬为 0");
+        expect(helper, 1.0E9D, load_capacity_procedures.burdenDamage(1.0E12D, 0.0D),
+                "超大生命值应当被夹到硬上限 1e9");
+        helper.succeed();
+    }
+
+    /** 载重值 90 → 受到的最终伤害 ×3。 */
+    @GameTest(template = TEMPLATE)
+    public static void loadCapacityReceivedMultiplierApplies(GameTestHelper helper) {
+        Player player = helper.makeMockPlayer();
+        player.getAttribute(attributes.LOAD_CAPACITY.get()).setBaseValue(90.0D);
+
+        LivingDamageEvent event = new LivingDamageEvent(
+                player, helper.getLevel().damageSources().generic(), 10.0F);
+        MinecraftForge.EVENT_BUS.post(event);
+        expect(helper, 30.0D, event.getAmount(), "载重值 90 时受到的最终伤害应当 ×3");
+        helper.succeed();
+    }
+
+    /** 载重值 90 → 自己造成的最终伤害 ×2（伤害源要算在玩家头上）。 */
+    @GameTest(template = TEMPLATE)
+    public static void loadCapacityDealtMultiplierApplies(GameTestHelper helper) {
+        Player attacker = helper.makeMockPlayer();
+        Zombie victim = helper.spawn(EntityType.ZOMBIE, new BlockPos(0, 0, 0));
+        attacker.getAttribute(attributes.LOAD_CAPACITY.get()).setBaseValue(90.0D);
+
+        LivingDamageEvent event = new LivingDamageEvent(
+                victim, helper.getLevel().damageSources().playerAttack(attacker), 10.0F);
+        MinecraftForge.EVENT_BUS.post(event);
+        expect(helper, 20.0D, event.getAmount(), "载重值 90 时造成的最终伤害应当 ×2");
+        helper.succeed();
+    }
+
+    /** 反噬触发一次，且 5 刻冷却内不再重复；清掉冷却后可再次触发。 */
+    @GameTest(template = TEMPLATE)
+    public static void loadCapacityBurdenHonoursItsCooldown(GameTestHelper helper) {
+        Player player = helper.makeMockPlayer();
+        player.getAttribute(attributes.LOAD_CAPACITY.get()).setBaseValue(89.0D);
+        player.invulnerableTime = 0;
+        player.setHealth(player.getMaxHealth());
+        // 给足伤害吸收，让 20 点反噬被吃掉、玩家不会直接死，便于观察扣了多少
+        player.setAbsorptionAmount(1000.0F);
+
+        DamageSource generic = helper.getLevel().damageSources().generic();
+
+        MinecraftForge.EVENT_BUS.post(new LivingDamageEvent(player, generic, 1.0F));
+        expect(helper, 980.0D, player.getAbsorptionAmount(),
+                "第一次应当追加 20 点反噬（1000 → 980），实测 " + player.getAbsorptionAmount());
+
+        MinecraftForge.EVENT_BUS.post(new LivingDamageEvent(player, generic, 1.0F));
+        expect(helper, 980.0D, player.getAbsorptionAmount(), "5 刻冷却内不该再追加反噬");
+
+        load_capacity_procedures.clearBurdenCooldown(player);
+        MinecraftForge.EVENT_BUS.post(new LivingDamageEvent(player, generic, 1.0F));
+        expect(helper, 960.0D, player.getAbsorptionAmount(), "清掉冷却后应当能再次触发");
+        helper.succeed();
+    }
+
+    /** 反噬伤害本身不再套加成、也不再触发新的反噬（防递归）。 */
+    @GameTest(template = TEMPLATE)
+    public static void loadCapacityBurdenIsNotRecursive(GameTestHelper helper) {
+        Player player = helper.makeMockPlayer();
+        player.getAttribute(attributes.LOAD_CAPACITY.get()).setBaseValue(89.0D);
+        player.setAbsorptionAmount(1000.0F);
+
+        LivingDamageEvent event = new LivingDamageEvent(
+                player, load_burden.source(helper.getLevel()), 20.0F);
+        MinecraftForge.EVENT_BUS.post(event);
+
+        expect(helper, 20.0D, event.getAmount(), "反噬伤害本身不该再被加成");
+        expect(helper, 1000.0D, player.getAbsorptionAmount(), "反噬伤害不该再触发新的反噬");
+        helper.succeed();
+    }
+
+    /** 载重反噬伤害类型已接进 shadow_damage 标签体系，死亡提示键留空但存在。 */
+    @GameTest(template = TEMPLATE)
+    public static void loadBurdenDamageTypeBypassesEverything(GameTestHelper helper) {
+        Holder<DamageType> holder = helper.getLevel().registryAccess()
+                .registryOrThrow(Registries.DAMAGE_TYPE).getHolderOrThrow(load_burden.KEY);
+
+        helper.assertTrue(holder.is(shadow_damage.TAG),
+                load_burden.NAME + " 应当在 " + shadow_damage.TAG.location() + " 里");
+        for (TagKey<DamageType> bypass : shadow_damage.IMPLIED_BYPASSES) {
+            helper.assertTrue(holder.is(bypass),
+                    load_burden.NAME + " 缺少 " + bypass.location() + "（记得同步改那 6 个 tag json）");
+        }
+        helper.assertTrue(load_burden.NAME.equals(holder.value().msgId()),
+                "message_id 实测 " + holder.value().msgId());
+
+        // lang 内容按需求留空，但键必须在（用户以后自己填）。
+        helper.assertTrue(langValue("zh_cn", load_burden.DEATH_MESSAGE_KEY) != null,
+                "zh_cn.json 缺少 " + load_burden.DEATH_MESSAGE_KEY);
+        helper.assertTrue(langValue("en_us", load_burden.DEATH_MESSAGE_KEY) != null,
+                "en_us.json 缺少 " + load_burden.DEATH_MESSAGE_KEY);
+        helper.assertTrue(langValue("zh_cn", load_burden.DEATH_MESSAGE_PLAYER_KEY) != null,
+                "zh_cn.json 缺少 " + load_burden.DEATH_MESSAGE_PLAYER_KEY);
+        helper.assertTrue(langValue("en_us", load_burden.DEATH_MESSAGE_PLAYER_KEY) != null,
+                "en_us.json 缺少 " + load_burden.DEATH_MESSAGE_PLAYER_KEY);
+        helper.succeed();
+    }
+
+    /** 登录时的默认值确实来自调试文件里的档位。 */
+    @GameTest(template = TEMPLATE)
+    public static void loadCapacityDefaultFollowsDebugFile(GameTestHelper helper) {
+        Player player = helper.makeMockPlayer();
+        MinecraftServer server = helper.getLevel().getServer();
+        helper.assertTrue(server != null, "GameTest 应当有服务端实例");
+
+        int level = debug_file.loadOrCreateLevel(server);
+        int used = load_capacity_procedures.syncDefaultFromWorld(player);
+        helper.assertTrue(used == level, "档位应当取自调试文件，实测 " + used + " vs " + level);
+        expect(helper, load_capacity_procedures.loadCapacityForLevel(level),
+                player.getAttributeValue(attributes.LOAD_CAPACITY.get()),
+                "载重值默认值应当按档位写入");
+        helper.succeed();
+    }
+
+    // ==================================================================
+    // 十五、理智值 san（procedures 包）
+    // ==================================================================
+
+    /** 默认值按世界档位：和平 50000 / 简单 22000 / 普通 10000 / 困难 2000。 */
+    @GameTest(template = TEMPLATE)
+    public static void sanDefaultsFollowWorldLevel(GameTestHelper helper) {
+        expect(helper, 50000.0D, san_procedures.sanForLevel(1), "和平档位应当是 50000");
+        expect(helper, 22000.0D, san_procedures.sanForLevel(2), "简单档位应当是 22000");
+        expect(helper, 10000.0D, san_procedures.sanForLevel(3), "普通档位应当是 10000");
+        expect(helper, 2000.0D, san_procedures.sanForLevel(4), "困难档位应当是 2000");
+
+        expect(helper, 50000.0D, san_procedures.sanForDifficulty(Difficulty.PEACEFUL), "和平难度 → 50000");
+        expect(helper, 22000.0D, san_procedures.sanForDifficulty(Difficulty.EASY), "简单难度 → 22000");
+        expect(helper, 10000.0D, san_procedures.sanForDifficulty(Difficulty.NORMAL), "普通难度 → 10000");
+        expect(helper, 2000.0D, san_procedures.sanForDifficulty(Difficulty.HARD), "困难难度 → 2000");
+
+        // 登录时只初始化一次，不能把玩家玩出来的数值盖掉。
+        Player player = helper.makeMockPlayer();
+        MinecraftServer server = helper.getLevel().getServer();
+        helper.assertTrue(server != null, "GameTest 应当有服务端实例");
+        int level = debug_file.loadOrCreateLevel(server);
+        san_state data = player_variables.san(player).orElse(null);
+        helper.assertTrue(data != null, "玩家应当挂着 san_state 能力");
+        helper.assertTrue(!data.isInitialized(), "新玩家一开始不该是已初始化");
+
+        int used = san_procedures.syncDefaultFromWorld(player);
+        helper.assertTrue(used == level, "档位应当取自调试文件，实测 " + used + " vs " + level);
+        expect(helper, san_procedures.sanForLevel(level), san_procedures.currentSan(player),
+                "首次登录应当按档位写入默认理智值");
+        helper.assertTrue(data.isInitialized(), "初始化后应当标记已初始化");
+
+        player.getAttribute(attributes.SAN.get()).setBaseValue(1234.0D);
+        helper.assertTrue(san_procedures.syncDefaultFromWorld(player) == -1, "已初始化后不该再重设");
+        expect(helper, 1234.0D, san_procedures.currentSan(player), "再次登录不能抹掉玩家进度");
+        helper.succeed();
+    }
+
+    /** 四种状态的边界。 */
+    @GameTest(template = TEMPLATE)
+    public static void sanStatesFollowThresholds(GameTestHelper helper) {
+        helper.assertTrue(san_procedures.State.of(100001.0D) == san_procedures.State.OVERFLOW, "100001 应当过盛");
+        helper.assertTrue(san_procedures.State.of(100000.0D) == san_procedures.State.NORMAL, "100000 应当正常");
+        helper.assertTrue(san_procedures.State.of(5000.0D) == san_procedures.State.NORMAL, "5000 应当正常");
+        helper.assertTrue(san_procedures.State.of(4999.0D) == san_procedures.State.COLLAPSE, "4999 应当崩溃");
+        helper.assertTrue(san_procedures.State.of(1000.0D) == san_procedures.State.COLLAPSE, "1000 应当崩溃");
+        helper.assertTrue(san_procedures.State.of(999.0D) == san_procedures.State.MELTDOWN, "999 应当融毁");
+        helper.assertTrue(san_procedures.State.of(0.0D) == san_procedures.State.MELTDOWN, "0 应当融毁");
+        helper.succeed();
+    }
+
+    /** 崩溃状态：stamina −10、recovery_interval −200、restore_health 扣到 0 为止。 */
+    @GameTest(template = TEMPLATE)
+    public static void sanCollapseAppliesNegativeModifiers(GameTestHelper helper) {
+        Player player = helper.makeMockPlayer();
+        san_state data = player_variables.san(player).orElse(null);
+        helper.assertTrue(data != null, "玩家应当挂着 san_state 能力");
+
+        player.getAttribute(attributes.RESTORE_HEALTH.get()).setBaseValue(0.5D);
+
+        san_procedures.syncStateModifiers(player, san_procedures.State.COLLAPSE, data);
+        expect(helper, -10.0D, player.getAttributeValue(attributes.STAMINA.get()), "崩溃时 stamina 应当 −10");
+        expect(helper, -200.0D, player.getAttributeValue(attributes.RECOVERY_INTERVAL.get()),
+                "崩溃时 recovery_interval 应当 −200");
+        expect(helper, 0.0D, player.getAttributeValue(attributes.RESTORE_HEALTH.get()),
+                "restore_health 0.5 只该扣 0.5，最终停在 0");
+
+        san_procedures.syncStateModifiers(player, san_procedures.State.NORMAL, data);
+        expect(helper, 0.0D, player.getAttributeValue(attributes.STAMINA.get()), "离开崩溃应当摘掉 stamina 修正");
+        expect(helper, 0.0D, player.getAttributeValue(attributes.RECOVERY_INTERVAL.get()),
+                "离开崩溃应当摘掉 recovery_interval 修正");
+        expect(helper, 0.5D, player.getAttributeValue(attributes.RESTORE_HEALTH.get()),
+                "离开崩溃应当把 restore_health 还回去");
+
+        // 已经是 0 的时候再扣，一点都不能扣。
+        expect(helper, 0.0D, san_procedures.clampRestoreHealthReduction(0.0D, -1.0D), "当前 0 时不该扣出负数");
+        expect(helper, -1.0D, san_procedures.clampRestoreHealthReduction(3.0D, -1.0D), "当前充足时扣满 1");
+        expect(helper, -0.4D, san_procedures.clampRestoreHealthReduction(0.4D, -1.0D), "当前 0.4 时只扣 0.4");
+        helper.succeed();
+    }
+
+    /** 受伤计时器：首次 10 秒，之后每次 +5 秒，封顶 50 秒。 */
+    @GameTest(template = TEMPLATE)
+    public static void sanInjuryTimerGrowsAndCaps(GameTestHelper helper) {
+        helper.assertTrue(san_procedures.nextInjuryTicks(0) == 200, "首次挨打应当给 10 秒（200 刻）");
+        helper.assertTrue(san_procedures.nextInjuryTicks(200) == 300, "第二次应当 15 秒");
+        helper.assertTrue(san_procedures.nextInjuryTicks(300) == 400, "第三次应当 20 秒");
+        helper.assertTrue(san_procedures.nextInjuryTicks(900) == 1000, "第到 45 秒再加 5 秒就是 50 秒");
+        helper.assertTrue(san_procedures.nextInjuryTicks(1000) == 1000, "封顶 50 秒，不能再加");
+
+        expect(helper, 0.0D, san_procedures.mentalInjuryPercent(0), "没有计时器 → 0%");
+        expect(helper, 0.0D, san_procedures.mentalInjuryPercent(19), "不满 1 秒不计");
+        expect(helper, 0.01D, san_procedures.mentalInjuryPercent(20), "1 秒 → 1%");
+        expect(helper, 0.10D, san_procedures.mentalInjuryPercent(200), "10 秒 → 10%");
+        expect(helper, 0.50D, san_procedures.mentalInjuryPercent(1000), "50 秒 → 50%");
+        expect(helper, 0.50D, san_procedures.mentalInjuryPercent(4000), "超过上限也按 50%");
+        helper.succeed();
+    }
+
+    /**
+     * 精神损伤挤在同一次伤害里：同一事件、同一个伤害源，只有数值按比例上调。
+     */
+    @GameTest(template = TEMPLATE)
+    public static void sanMentalInjuryStaysOneDamageEvent(GameTestHelper helper) {
+        Player player = helper.makeMockPlayer();
+        player.getAttribute(attributes.SAN.get()).setBaseValue(3000.0D);
+        san_state data = player_variables.san(player).orElse(null);
+        helper.assertTrue(data != null, "玩家应当挂着 san_state 能力");
+
+        // 无甲：50% 转换不该改变数值（无视减免与原本一致）。
+        data.setInjuryTicks(1000);
+        // 注意不能用 damageSources().generic()：原版的 generic 就在 bypasses_armor 里，
+        // 根本没有「盔甲可以免掉的那一部分」可以补回来。用怪物近战才是能穿甲的伤害。
+        Zombie biter = helper.spawn(EntityType.ZOMBIE, new BlockPos(0, 0, 0));
+        DamageSource mainSource = helper.getLevel().damageSources().mobAttack(biter);
+        LivingHurtEvent event = new LivingHurtEvent(player, mainSource, 10.0F);
+        MinecraftForge.EVENT_BUS.post(event);
+        expect(helper, 10.0D, event.getAmount(), "无甲时 50% 转换应当数值不变");
+        helper.assertTrue(event.getSource() == mainSource, "必须是同一个伤害源（同一次伤害）");
+        helper.assertTrue(event.getSource().is(DamageTypes.MOB_ATTACK),
+                "致死播报必须还是主伤害类型：" + event.getSource().getMsgId());
+        helper.assertTrue(data.getInjuryTicks() == 1000, "已经封顶就不再延长");
+
+        // 有甲：被转换的那 50% 无视护甲，事件数值要相应上调。
+        player.getAttribute(Attributes.ARMOR).setBaseValue(15.0D);
+        data.setInjuryTicks(1000);
+        helper.assertTrue(player.getArmorValue() == 15, "甲值实测 " + player.getArmorValue());
+        helper.assertTrue(san_procedures.mentalInjuryPercent(data.getInjuryTicks()) == 0.5D,
+                "比例实测 " + san_procedures.mentalInjuryPercent(data.getInjuryTicks())
+                        + " / ticks " + data.getInjuryTicks());
+        helper.assertTrue(san_procedures.State.of(san_procedures.currentSan(player)) == san_procedures.State.COLLAPSE,
+                "状态实测 " + san_procedures.State.of(san_procedures.currentSan(player)).key()
+                        + " / san " + san_procedures.currentSan(player));
+        LivingHurtEvent armored = new LivingHurtEvent(player, mainSource, 10.0F);
+        MinecraftForge.EVENT_BUS.post(armored);
+        helper.assertTrue(armored.getAmount() > 10.0F,
+                "有甲时 50% 无视护甲应当让数值变大，实测 " + armored.getAmount()
+                        + "（诊断：" + san_procedures.DEBUG_LAST_HURT + "）");
+        // 公式不把护甲系数写死：它一定会走 {@code CombatRules}（可能已被 Apothic 改写），
+        // 所以断言「不变式」而不是写死的数字：
+        // 把结果再走一遭护甲，应当恰好等于「一半照旧受甲 + 一半全额」。
+        double portion = 10.0D * 0.5D;
+        double armorLoss = net.minecraft.world.damagesource.CombatRules.getDamageAfterAbsorb(
+                (float) portion, 15.0F, 0.0F);
+        double boosted = san_procedures.mentalInjuryBoostedAmount(10.0F, 0.5D, 15.0F, 0.0F);
+        double finalDamage = net.minecraft.world.damagesource.CombatRules.getDamageAfterAbsorb(
+                (float) boosted, 15.0F, 0.0F);
+        double expectedFinal = armorLoss + portion;
+        helper.assertTrue(Math.abs(finalDamage - expectedFinal) < 0.05D,
+                "转换后过护甲应当等于「一半受压 + 一半全额」：期望 " + expectedFinal
+                        + "，实测 " + finalDamage);
+        helper.assertTrue(boosted > 10.0D, "转换应当让事件数值上调，实测 " + boosted);
+
+        // 计时器从 0 起：先按 0% 结算，再给 10 秒。
+        player.getAttribute(Attributes.ARMOR).setBaseValue(0.0D);
+        data.setInjuryTicks(0);
+        LivingHurtEvent first = new LivingHurtEvent(player, mainSource, 10.0F);
+        MinecraftForge.EVENT_BUS.post(first);
+        expect(helper, 10.0D, first.getAmount(), "第一次挨打还没有计时器，数值不变");
+        helper.assertTrue(data.getInjuryTicks() == 200, "第一次挨打后应当有 10 秒计时器，实测 " + data.getInjuryTicks());
+
+        LivingHurtEvent second = new LivingHurtEvent(player, mainSource, 10.0F);
+        MinecraftForge.EVENT_BUS.post(second);
+        helper.assertTrue(data.getInjuryTicks() == 300, "第二次应当延到 15 秒，实测 " + data.getInjuryTicks());
+        helper.succeed();
+    }
+
+    /** remit_loadcapacity 标签里的伤害不参与精神损伤换算、也不刷计时器。 */
+    @GameTest(template = TEMPLATE)
+    public static void sanMentalInjurySkipsRemitTag(GameTestHelper helper) {
+        Player player = helper.makeMockPlayer();
+        player.getAttribute(attributes.SAN.get()).setBaseValue(3000.0D);
+        player.getAttribute(Attributes.ARMOR).setBaseValue(15.0D);
+        san_state data = player_variables.san(player).orElse(null);
+        helper.assertTrue(data != null, "玩家应当挂着 san_state 能力");
+        data.setInjuryTicks(1000);
+
+        LivingHurtEvent burden = new LivingHurtEvent(
+                player, load_burden.source(helper.getLevel()), 10.0F);
+        MinecraftForge.EVENT_BUS.post(burden);
+        expect(helper, 10.0D, burden.getAmount(), "载重反噬不该被转换（防递归）");
+
+        data.setInjuryTicks(0);
+        LivingHurtEvent mental = new LivingHurtEvent(
+                player, mental_injury.source(helper.getLevel()), 10.0F);
+        MinecraftForge.EVENT_BUS.post(mental);
+        expect(helper, 10.0D, mental.getAmount(), "精神损伤本身不该再被转换");
+        helper.assertTrue(data.getInjuryTicks() == 0, "标签里的伤害不该刷计时器");
+        helper.succeed();
+    }
+
+    /** 融毁：损失的血量等量削掉生命上限。 */
+    @GameTest(template = TEMPLATE)
+    public static void sanMeltdownTurnsLostHealthIntoMaxHealth(GameTestHelper helper) {
+        Player player = helper.makeMockPlayer();
+        player.getAttribute(attributes.SAN.get()).setBaseValue(500.0D);
+        player.setHealth(20.0F);
+        san_state data = player_variables.san(player).orElse(null);
+        helper.assertTrue(data != null, "玩家应当挂着 san_state 能力");
+
+        double maxBefore = player.getMaxHealth();
+        LivingDamageEvent event = new LivingDamageEvent(
+                player, helper.getLevel().damageSources().generic(), 4.0F);
+        MinecraftForge.EVENT_BUS.post(event);
+
+        expect(helper, 4.0D, data.getMeltdownPenalty(), "损失 4 点血就该记 4 点罚值");
+        expect(helper, maxBefore - 4.0D, player.getMaxHealth(), "生命上限应当爷 4 点");
+
+        // 已经不是融毁状态就不该再扣。
+        player.getAttribute(attributes.SAN.get()).setBaseValue(3000.0D);
+        double maxNow = player.getMaxHealth();
+        MinecraftForge.EVENT_BUS.post(new LivingDamageEvent(
+                player, helper.getLevel().damageSources().generic(), 4.0F));
+        expect(helper, maxNow, player.getMaxHealth(), "非融毁状态不该再削上限");
+        helper.succeed();
+    }
+
+    /** 融毁：生命上陉0 时直接处决。 */
+    @GameTest(template = TEMPLATE)
+    public static void sanMeltdownKillsAtZeroMaxHealth(GameTestHelper helper) {
+        Player player = helper.makeMockPlayer();
+        player.getAttribute(attributes.SAN.get()).setBaseValue(500.0D);
+        player.setHealth(player.getMaxHealth());
+        san_state data = player_variables.san(player).orElse(null);
+        helper.assertTrue(data != null, "玩家应当挂着 san_state 能力");
+
+        data.setMeltdownPenalty(player.getMaxHealth());
+        san_procedures.syncMeltdownModifier(player, data);
+        // 原版 MAX_HEALTH 的最小值是 1.0，属性会自己夹住，所以这里只校验「真正的手算值 ≤ 0」。
+        helper.assertTrue(san_procedures.remainingMaxHealth(player, data) <= 0.0D,
+                "罚值等于生命上限时手算上限应当归 0，实测 " + san_procedures.remainingMaxHealth(player, data));
+        helper.assertTrue(player.getMaxHealth() <= 1.0D,
+                "属性值会被原版夹到 1.0，实测 " + player.getMaxHealth());
+
+        MinecraftForge.EVENT_BUS.post(new LivingDamageEvent(
+                player, helper.getLevel().damageSources().generic(), 1.0F));
+        helper.assertTrue(player.isDeadOrDying() || player.getHealth() <= 0.0F,
+                "生命上限为 0 时应当直接死亡，实测 health=" + player.getHealth());
+        helper.succeed();
+    }
+
+    /** 行为池：本轮是空的，未知 id 不执行任何事。 */
+    @GameTest(template = TEMPLATE)
+    public static void sanBehaviourPoolStartsEmpty(GameTestHelper helper) {
+        helper.assertTrue(san_behaviour_pool.isEmpty(), "行为池本轮应当为空");
+        helper.assertTrue(san_behaviour_pool.ids().isEmpty(), "行为池不该有任何 id");
+        helper.assertTrue(san_behaviour_pool.find(new ResourceLocation(white_lily.MODID, "nothing")).isEmpty(),
+                "未知 id 应当找不到");
+
+        Player player = helper.makeMockPlayer();
+        player.getAttribute(attributes.SAN.get()).setBaseValue(10000.0D);
+
+        ServerPlayer serverPlayer = player instanceof ServerPlayer sp ? sp : null;
+        if (serverPlayer != null) {
+            helper.assertTrue(!san_behaviour_pool.run(serverPlayer,
+                            new ResourceLocation(white_lily.MODID, "nothing")),
+                    "未知行为不该执行成功");
+        }
+        expect(helper, 10000.0D, san_behaviour_pool.currentSan(player), "理智值不该被未知行为改动");
+
+        // 扣不起就一点都不扣。
+        helper.assertTrue(!san_behaviour_pool.tryConsume(player, 10001.0D), "不够扣时应当整体失败");
+        expect(helper, 10000.0D, san_behaviour_pool.currentSan(player), "失败时不该扣一半");
+        helper.assertTrue(san_behaviour_pool.tryConsume(player, 500.0D), "够扣时应当成功");
+        expect(helper, 9500.0D, san_behaviour_pool.currentSan(player), "扣 500 后应当 9500");
+        helper.succeed();
+    }
+
+    /** 两个新伤害类型都进了 shadow_damage + 5 个 bypasses，mental_injury 还进了 remit_loadcapacity。 */
+    @GameTest(template = TEMPLATE)
+    public static void sanDamageTypesRegisteredWithTags(GameTestHelper helper) {
+        var registry = helper.getLevel().registryAccess().registryOrThrow(Registries.DAMAGE_TYPE);
+
+        Holder<DamageType> mental = registry.getHolderOrThrow(mental_injury.KEY);
+        helper.assertTrue(mental.is(shadow_damage.TAG), "mental_injury 应当在 shadow_damage 里");
+        for (TagKey<DamageType> bypass : shadow_damage.IMPLIED_BYPASSES) {
+            helper.assertTrue(mental.is(bypass), "mental_injury 缺少 " + bypass.location());
+        }
+        helper.assertTrue(mental.is(remit_loadcapacity.TAG), "mental_injury 应当在 remit_loadcapacity 里");
+        helper.assertTrue(mental_injury.NAME.equals(mental.value().msgId()),
+                "mental_injury 的 message_id 实测 " + mental.value().msgId());
+
+        Holder<DamageType> melt = registry.getHolderOrThrow(meltdown.KEY);
+        helper.assertTrue(melt.is(shadow_damage.TAG), "meltdown 应当在 shadow_damage 里");
+        for (TagKey<DamageType> bypass : shadow_damage.IMPLIED_BYPASSES) {
+            helper.assertTrue(melt.is(bypass), "meltdown 缺少 " + bypass.location());
+        }
+        helper.assertTrue(meltdown.NAME.equals(melt.value().msgId()),
+                "meltdown 的 message_id 实测 " + melt.value().msgId());
+
+        // 载重反噬也在 remit_loadcapacity 里（两个成员都要到齐）。
+        for (var key : remit_loadcapacity.MEMBERS) {
+            helper.assertTrue(registry.getHolderOrThrow(key).is(remit_loadcapacity.TAG),
+                    key.location() + " 应当在 remit_loadcapacity 里");
+        }
+
+        // lang 内容按需求留空，但键必须在。
+        for (String locale : new String[]{"zh_cn", "en_us"}) {
+            helper.assertTrue(langValue(locale, mental_injury.DEATH_MESSAGE_KEY) != null,
+                    locale + " 缺少 " + mental_injury.DEATH_MESSAGE_KEY);
+            helper.assertTrue(langValue(locale, mental_injury.DEATH_MESSAGE_PLAYER_KEY) != null,
+                    locale + " 缺少 " + mental_injury.DEATH_MESSAGE_PLAYER_KEY);
+            helper.assertTrue(langValue(locale, meltdown.DEATH_MESSAGE_KEY) != null,
+                    locale + " 缺少 " + meltdown.DEATH_MESSAGE_KEY);
+            helper.assertTrue(langValue(locale, meltdown.DEATH_MESSAGE_PLAYER_KEY) != null,
+                    locale + " 缺少 " + meltdown.DEATH_MESSAGE_PLAYER_KEY);
+            helper.assertTrue(langValue(locale, "white_lily.san") != null,
+                    locale + " 缺少 white_lily.san（改名后的键）");
+            helper.assertTrue(langValue(locale, "white_lily.san.desc") != null,
+                    locale + " 缺少 white_lily.san.desc");
+            helper.assertTrue(langValue(locale, "white_lily.steadfast_in_spirit") == null,
+                    locale + " 不该再留着旧键 white_lily.steadfast_in_spirit");
+        }
+        helper.succeed();
+    }
+
+    // ==================================================================
+    // 十六、幻影碎片（phantom_fragments）饰品欄
+    // ==================================================================
+
+    /** 数量按世界档位：和平 1 / 简单 2 / 普通 4 / 困难 5。 */
+    @GameTest(template = TEMPLATE)
+    public static void phantomFragmentsSlotCountsFollowLevel(GameTestHelper helper) {
+        helper.assertTrue(phantom_fragments_slots.slotsForLevel(1) == 1, "和平档位应当是 1 个栏位");
+        helper.assertTrue(phantom_fragments_slots.slotsForLevel(2) == 2, "简单档位应当是 2 个栏位");
+        helper.assertTrue(phantom_fragments_slots.slotsForLevel(3) == 4, "普通档位应当是 4 个栏位");
+        helper.assertTrue(phantom_fragments_slots.slotsForLevel(4) == 5, "困难档位应当是 5 个栏位");
+
+        helper.assertTrue(phantom_fragments_slots.slotsForDifficulty(Difficulty.PEACEFUL) == 1, "和平难度 → 1");
+        helper.assertTrue(phantom_fragments_slots.slotsForDifficulty(Difficulty.EASY) == 2, "简单难度 → 2");
+        helper.assertTrue(phantom_fragments_slots.slotsForDifficulty(Difficulty.NORMAL) == 4, "普通难度 → 4");
+        helper.assertTrue(phantom_fragments_slots.slotsForDifficulty(Difficulty.HARD) == 5, "困难难度 → 5");
+
+        // 越界档位夹到 1~4，不能算出 0 或负数
+        helper.assertTrue(phantom_fragments_slots.slotsForLevel(0) == 1, "档位 0 应当夹到 1");
+        helper.assertTrue(phantom_fragments_slots.slotsForLevel(99) == 5, "档位 99 应当夹到 4（→5 个）");
+        helper.succeed();
+    }
+
+    /** 真的去 Curios 那边问：设几个就是几个（底层库存也要跟着扩）。 */
+    @GameTest(template = TEMPLATE)
+    public static void phantomFragmentsApplySetsCuriosSlotCount(GameTestHelper helper) {
+        Player player = helper.makeMockPlayer();
+
+        for (int level = 1; level <= 4; level++) {
+            phantom_fragments_slots.apply(player, level);
+            int expected = phantom_fragments_slots.slotsForLevel(level);
+
+            int slots = CuriosApi.getSlotHelper().getSlotsForType(player, curio_slots.PHANTOM_FRAGMENTS);
+            helper.assertTrue(slots == expected,
+                    level + " 档应当有 " + expected + " 个 " + curio_slots.PHANTOM_FRAGMENTS
+                            + " 栏位，实测 " + slots);
+
+            ICuriosItemHandler handler = CuriosApi.getCuriosInventory(player).orElse(null);
+            helper.assertTrue(handler != null, "假玩家拿不到 Curios 库存能力");
+            ICurioStacksHandler stacksHandler = handler
+                    .getStacksHandler(curio_slots.PHANTOM_FRAGMENTS).orElse(null);
+            helper.assertTrue(stacksHandler != null,
+                    "玩家身上没有 " + curio_slots.PHANTOM_FRAGMENTS + " 栏（数据包没注册上？）");
+            helper.assertTrue(stacksHandler.getStacks().getSlots() == expected,
+                    "底层库存应当有 " + expected + " 格，实测 " + stacksHandler.getStacks().getSlots());
+        }
+        helper.succeed();
+    }
+
+    /** 这个栏只改数量，不往里塞东西（已有内容也不能被清空）。 */
+    @GameTest(template = TEMPLATE)
+    public static void phantomFragmentsApplyKeepsContents(GameTestHelper helper) {
+        Player player = helper.makeMockPlayer();
+        phantom_fragments_slots.apply(player, 4);
+
+        ICuriosItemHandler handler = CuriosApi.getCuriosInventory(player).orElse(null);
+        helper.assertTrue(handler != null, "假玩家拿不到 Curios 库存能力");
+        ICurioStacksHandler stacksHandler = handler
+                .getStacksHandler(curio_slots.PHANTOM_FRAGMENTS).orElse(null);
+        helper.assertTrue(stacksHandler != null, "玩家身上没有幻影碎片栏");
+
+        stacksHandler.getStacks().setStackInSlot(2, new ItemStack(Items.DIAMOND));
+        phantom_fragments_slots.apply(player, 3);
+
+        helper.assertTrue(stacksHandler.getStacks().getStackInSlot(2).is(Items.DIAMOND),
+                "重设数量不该动栏里的东西，实测 " + stacksHandler.getStacks().getStackInSlot(2));
+        helper.assertTrue(stacksHandler.getStacks().getSlots() == 4, "第 3 档应当是 4 格");
+
+        // 不让「改良」栏被顺手改掉（两个栏各自独立）
+        improvement_loadout.apply(player, 2);
+        helper.assertTrue(CuriosApi.getSlotHelper().getSlotsForType(player, curio_slots.PHANTOM_FRAGMENTS) == 4,
+                "重设改良栏不该把幻影碎片栏改回去");
+        helper.succeed();
+    }
+
+    /** 数据包与贴图都在位：slot json、实体挂接、贴图、物品标签、lang 键。 */
+    @GameTest(template = TEMPLATE)
+    public static void phantomFragmentsResourcesAreShipped(GameTestHelper helper) {
+        String slotPath = "/data/white_lily/curios/slots/phantom_fragments.json";
+        helper.assertTrue(existsResource(slotPath), "缺少 " + slotPath);
+
+        JsonObject slot = readJsonResource(slotPath);
+        helper.assertTrue(slot != null, "读不了 " + slotPath);
+        helper.assertTrue("white_lily:slot/phantom_fragments".equals(slot.get("icon").getAsString()),
+                "icon 实测 " + slot.get("icon"));
+        helper.assertTrue(slot.get("size").getAsInt() == 1, "数据包里 size 应当是基础值 1");
+        helper.assertTrue(slot.getAsJsonArray("validators").toString().contains("curios:tag"),
+                "validators 应当包含 curios:tag");
+
+        JsonObject entities = readJsonResource("/data/white_lily/curios/entities/player.json");
+        helper.assertTrue(entities != null, "读不了 entities/player.json");
+        String slots = entities.getAsJsonArray("slots").toString();
+        helper.assertTrue(slots.contains(curio_slots.PHANTOM_FRAGMENTS),
+                "player.json 的 slots 里应当有 " + curio_slots.PHANTOM_FRAGMENTS + "，实测 " + slots);
+        helper.assertTrue(slots.contains(curio_slots.IMPROVEMENT),
+                "player.json 里原有的人类栏不能丢，实测 " + slots);
+
+        helper.assertTrue(existsResource("/assets/white_lily/textures/slot/phantom_fragments.png"),
+                "缺少栏位贴图 assets/white_lily/textures/slot/phantom_fragments.png");
+        helper.assertTrue(existsResource("/assets/minecraft/atlases/blocks.json"),
+                "缺少图集声明，贴图不会被拼进 blocks 图集");
+        helper.assertTrue(existsResource("/data/curios/tags/items/phantom_fragments.json"),
+                "缺少物品标签 data/curios/tags/items/phantom_fragments.json");
+
+        // lang 按需求留空，但键必须在，而且内容必须是空的。
+        for (String locale : new String[]{"zh_cn", "en_us"}) {
+            String value = langValue(locale, curio_slots.PHANTOM_FRAGMENTS_NAME_KEY);
+            helper.assertTrue(value != null, locale + " 缺少 " + curio_slots.PHANTOM_FRAGMENTS_NAME_KEY);
+            helper.assertTrue(value.isEmpty(),
+                    locale + " 的栏位名应当留空，实测「" + value + "」");
+        }
+        helper.succeed();
     }
 
     /** 读 ISS 某条属性的当前值（属性不存在时返回 NaN）。 */
@@ -2532,6 +3176,19 @@ public final class WhiteLilyGameTests {
         LivingDamageEvent event = new LivingDamageEvent(entity, level.damageSources().generic(), amount);
         MinecraftForge.EVENT_BUS.post(event);
         return event.getAmount();
+    }
+
+    /** 从类路径上读一份 JSON；读不到或解析失败返回 null。 */
+    private static JsonObject readJsonResource(String classpathPath) {
+        try (InputStream in = WhiteLilyGameTests.class.getResourceAsStream(classpathPath)) {
+            if (in == null) {
+                return null;
+            }
+            return JsonParser.parseString(new String(in.readAllBytes(), StandardCharsets.UTF_8))
+                    .getAsJsonObject();
+        } catch (IOException | RuntimeException e) {
+            return null;
+        }
     }
 
     /** 断言实测值与期望值一致（带容差）。 */

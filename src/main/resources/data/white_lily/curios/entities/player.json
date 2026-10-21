@@ -1,4 +1,4 @@
 {
   "entities": ["player"],
-  "slots": ["improvement"]
+  "slots": ["improvement", "phantom_fragments"]
 }

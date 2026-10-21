@@ -79,7 +79,7 @@ public final class happy_mode_hunger
     // 饥饿值归零之后的状态
     // ==================================================================
 
-    /** 每 2 秒掉 1 点 {@code steadfast_in_spirit}。 */
+    /** 每 2 秒掉 1 点 {@code san}。 */
     public static final int SPIRIT_LOSS_INTERVAL_SECONDS = 2;
 
     /** 每 12 秒按最大生命值的一定比例扣血。 */
@@ -148,7 +148,7 @@ public final class happy_mode_hunger
         return SATURATION_EFFECT_GAIN_PER_LEVEL_PER_SECOND * (amplifier + 1) / TICKS_PER_SECOND;
     }
 
-    /** {@code steadfast_in_spirit} 每 2 秒掉 1 点，换算成刻。 */
+    /** {@code san} 每 2 秒掉 1 点，换算成刻。 */
     public static int spiritLossIntervalTicks()
     {
         return SPIRIT_LOSS_INTERVAL_SECONDS * TICKS_PER_SECOND;

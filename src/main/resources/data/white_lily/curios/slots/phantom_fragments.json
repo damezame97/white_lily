@@ -1,0 +1,6 @@
+{
+  "order": 1001,
+  "size": 1,
+  "icon": "white_lily:slot/phantom_fragments",
+  "validators": ["curios:tag"]
+}

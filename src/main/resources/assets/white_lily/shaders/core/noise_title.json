@@ -1,0 +1,14 @@
+{
+  "blend": {"func": "add", "srcrgb": "srcalpha", "dstrgb": "1-srcalpha"},
+  "vertex": "white_lily:noise_title",
+  "fragment": "white_lily:noise_title",
+  "attributes": ["Position", "UV0"],
+  "samplers": [],
+  "uniforms": [
+    {"name": "ModelViewMat", "type": "matrix4x4", "count": 16, "values": [1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1]},
+    {"name": "ProjMat", "type": "matrix4x4", "count": 16, "values": [1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1]},
+    {"name": "NoiseTime", "type": "float", "count": 1, "values": [0]},
+    {"name": "FieldSize", "type": "float", "count": 2, "values": [480, 300]},
+    {"name": "Opacity", "type": "float", "count": 1, "values": [0]}
+  ]
+}

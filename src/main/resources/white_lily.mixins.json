@@ -13,6 +13,9 @@
     "MixinPlayer",
     "MixinSlot"
   ],
+  "client": [
+    "client.MixinTitleScreen"
+  ],
   "injectors": {
     "defaultRequire": 1
   }

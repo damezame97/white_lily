@@ -79,6 +79,22 @@ public final class player_variables
     public static final ResourceLocation HUNGER_STATE_ID =
             new ResourceLocation(white_lily.MODID, "hunger_state");
 
+    /** 理智值的运行状态（受伤计时器 + 融毁罚值，见 {@link san_state}）。 */
+    public static final Capability<san_state> SAN_STATE =
+            CapabilityManager.get(new CapabilityToken<>()
+            {
+            });
+
+    /** 理智状态在实体数据里的标识。 */
+    public static final ResourceLocation SAN_STATE_ID =
+            new ResourceLocation(white_lily.MODID, "san_state");
+
+    /** 取玩家身上的理智状态；没挂着时返回空。 */
+    public static Optional<san_state> san(Player player)
+    {
+        return player.getCapability(SAN_STATE).resolve();
+    }
+
     /** 取玩家身上的消耗计数器；没挂着时返回空。 */
     public static Optional<hunger_state> hunger(Player player)
     {
@@ -107,6 +123,7 @@ public final class player_variables
         {
             event.addCapability(PROGRESSIVE_TENSE_ID, new Provider());
             event.addCapability(HUNGER_STATE_ID, new HungerStateProvider());
+            event.addCapability(SAN_STATE_ID, new SanStateProvider());
         }
     }
 
@@ -126,6 +143,48 @@ public final class player_variables
         if (oldHunger.isPresent() && currentHunger.isPresent())
         {
             currentHunger.get().copyFrom(oldHunger.get());
+        }
+
+        Optional<san_state> oldSan = san(event.getOriginal());
+        Optional<san_state> currentSan = san(event.getEntity());
+        if (oldSan.isPresent() && currentSan.isPresent())
+        {
+            // 死亡重生不该继承融毁罚值/计时器（否则会变成必死循环），只有换维度才搬。
+            if (event.isWasDeath())
+            {
+                currentSan.get().resetAfterDeath();
+            }
+            else
+            {
+                currentSan.get().copyFrom(oldSan.get());
+            }
+        }
+    }
+
+    /**
+     * {@link san_state} 的能力提供者（结构同上，只是装的东西不同）。
+     */
+    private static class SanStateProvider implements ICapabilityProvider, ICapabilitySerializable<CompoundTag>
+    {
+        private final san_state instance = new san_state();
+        private final LazyOptional<san_state> optional = LazyOptional.of(() -> instance);
+
+        @Override
+        public <T> LazyOptional<T> getCapability(Capability<T> cap, Direction side)
+        {
+            return SAN_STATE.orEmpty(cap, optional);
+        }
+
+        @Override
+        public CompoundTag serializeNBT()
+        {
+            return instance.serializeNBT();
+        }
+
+        @Override
+        public void deserializeNBT(CompoundTag nbt)
+        {
+            instance.deserializeNBT(nbt);
         }
     }
 

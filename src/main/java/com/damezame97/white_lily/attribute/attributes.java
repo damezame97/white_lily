@@ -70,9 +70,16 @@ public final class attributes {
     public static final RegistryObject<Attribute> DAMAGE_REDUCTION =
             register("damage_reduction", 0.0D, 0.0D, 1.0D);
 
-    /** 载重值 */
+    /**
+     * 载重值。
+     *
+     * <p><b>注册默认值只是兵底</b>：真正的默认值按世界档位在玩家每次登录时写入
+     * （和平 150 / 简单 140 / 普通 120 / 困难 100，见
+     * {@link com.damezame97.white_lily.procedures.load_capacity_procedures}）。
+     * 这里取 100（机制的中性点：低于 100 才开始有惩罚），万一登录钩子没跑到也不会把玩家直接坑死。</p>
+     */
     public static final RegistryObject<Attribute> LOAD_CAPACITY =
-            register("load_capacity", 0.05D, -10024.0D, 10024.0D);
+            register("load_capacity", 100.0D, 0.0D, 10024.0D);
 
     /**
      * 全局法强：等于 ISS 里所有学派法术强度同时获得该值。
@@ -93,9 +100,17 @@ public final class attributes {
     public static final RegistryObject<Attribute> ALL_SPELL_RESIS =
             register("all_spell_resis", 0.00D, -10024.0D, 10024.0D);
 
-    /** 意志坚定值 */
-    public static final RegistryObject<Attribute> STEADFAST_IN_SPIRIT =
-            register("steadfast_in_spirit", 0.05D, -100.0D, 10024.0D);
+    /**
+     * 理智值（{@code white_lily.san}）。
+     *
+     * <p><b>注册默认值只是兵底</b>：真正的默认值按世界档位在玩家每次登录时写入
+     * （和平 50000 / 简单 22000 / 普通 10000 / 困难 2000，见
+     * {@link com.damezame97.white_lily.procedures.san_procedures}）。这里取 10000（普通档）。</p>
+     *
+     * <p>四种状态：过盛 &gt; 100000、正常 [5000, 100000]、崩溃 [1000, 5000)、融毁 &lt; 1000。</p>
+     */
+    public static final RegistryObject<Attribute> SAN =
+            register("san", 10000.0D, 0.0D, 100000024.0D);
 
     /** 意志坚韧度 */
     public static final RegistryObject<Attribute> WILLPOWER_STRENGTH =

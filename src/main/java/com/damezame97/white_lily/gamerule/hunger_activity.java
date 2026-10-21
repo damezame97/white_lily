@@ -42,7 +42,7 @@ import java.util.UUID;
  *
  * <h2>饥饿值归零之后</h2>
  * <p>饥饿值 ≤ 0 时<b>不再扣计数器</b>，改为挂一串负面效果：速度 −60%、
- * 挖掘速度 ×0.2、台阶高度 −0.3、游泳速度 −70%，每 2 秒掉 1 点 {@code steadfast_in_spirit}
+ * 挖掘速度 ×0.2、台阶高度 −0.3、游泳速度 −70%，每 2 秒掉 1 点 {@code san}
  * （<b>永久</b>下降，吃饱也不还），每 12 秒扣「最大生命值 20%」的枯竭伤害直至死亡。
  * 饿回来（饥饿值 &gt; 0）就把前四条属性修正摘掉。</p>
  *
@@ -333,7 +333,7 @@ public final class hunger_activity
     /** 每 2 秒掉 1 点意志坚定值（<b>永久</b>，吃饱也不还——需求已确认）。 */
     private static void lowerSpirit(Player player)
     {
-        AttributeInstance spirit = player.getAttribute(attributes.STEADFAST_IN_SPIRIT.get());
+        AttributeInstance spirit = player.getAttribute(attributes.SAN.get());
         if (spirit != null)
         {
             spirit.setBaseValue(spirit.getBaseValue() - 1.0D);
