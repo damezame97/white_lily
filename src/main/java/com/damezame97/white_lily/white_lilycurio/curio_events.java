@@ -27,6 +27,8 @@ import org.slf4j.Logger;
  *     <li>玩家<b>每次</b>进入世界时，按那份 json 里的 {@code difficulty_level} 重设
  *         {@code improvement} 饰品栏的栏位数量与栏内饰品
  *         （见 {@link improvement_loadout#syncFromDebugFile}）；</li>
+ *     <li>同一时刻也重设 {@code phantom_fragments} 栏的<b>数量</b>（1/2/4/5，不塞东西，
+ *         见 {@link phantom_fragments_slots#syncFromDebugFile}）；</li>
  *     <li>非创造玩家的物品栏里出现「改良」系列饰品就<b>立刻删掉</b>（每 tick 查一次）；</li>
  *     <li>兜底：掉落物里出现这四件就剔除（正常应由 {@link improvement_curio} 的掉落规则拦住）。</li>
  * </ol>
@@ -43,7 +45,7 @@ public final class curio_events
         debug_file.loadOrCreateLevel(event.getServer());
     }
 
-    /** 每次进世界都按调试文件重设一遍 improvement 饰品栏。 */
+    /** 每次进世界都按调试文件重设一遍 improvement 与 phantom_fragments 饰品栏。 */
     @SubscribeEvent
     public static void onPlayerLoggedIn(PlayerEvent.PlayerLoggedInEvent event)
     {
@@ -53,11 +55,12 @@ public final class curio_events
         }
 
         int level = improvement_loadout.syncFromDebugFile(player);
+        phantom_fragments_slots.syncFromDebugFile(player);
 
         if (Config.debugLogging)
         {
-            LOGGER.info("White Lily: 进入世界，已按 {} 的档位 {} 重设 {} 饰品栏",
-                    debug_file.FILE_NAME, level, curio_slots.IMPROVEMENT);
+            LOGGER.info("White Lily: 进入世界，已按 {} 的档位 {} 重设 {} 与 {} 饰品栏",
+                    debug_file.FILE_NAME, level, curio_slots.IMPROVEMENT, curio_slots.PHANTOM_FRAGMENTS);
         }
     }
 

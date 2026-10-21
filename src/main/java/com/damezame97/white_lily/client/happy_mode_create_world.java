@@ -1,5 +1,6 @@
 package com.damezame97.white_lily.client;
 
+import com.damezame97.white_lily.Config;
 import com.damezame97.white_lily.gamerule.happy_mode;
 import com.damezame97.white_lily.white_lily;
 import com.mojang.logging.LogUtils;
@@ -30,6 +31,7 @@ import java.util.List;
 
 /**
  * 把 {@code Happy_mode} 的开关放进原版「创建世界」界面的「世界」页（纯客户端）。
+ * 启用特殊窗口配置时，改为在创建世界界面的各个页签显示特殊窗口入口。
  *
  * <h2>为什么不在「更多 → 游戏规则」里等它</h2>
  * <p>游戏规则本身会出现在「更多」页的「游戏规则」界面里，而且按 {@code GameRules.Category}
@@ -112,6 +114,12 @@ public final class happy_mode_create_world
             return;
         }
 
+        if (Config.enableSpecialWindow)
+        {
+            event.addListener(new SpecialWindowPortal(screen));
+            return;
+        }
+
         GridLayoutTab worldTab = findWorldTab(screen);
         if (worldTab == null)
         {
@@ -126,8 +134,7 @@ public final class happy_mode_create_world
             return;
         }
 
-        GameRules rules = screen.getUiState().getGameRules();
-        Checkbox created = createSwitch(rules);
+        Checkbox created = createSwitch(screen);
         created.setTooltip(Tooltip.create(Component.translatable(INFO_KEY)));
 
         int row = nextFreeRow(layout);
@@ -143,16 +150,18 @@ public final class happy_mode_create_world
     /**
      * 一个 {@link Checkbox}：勾选框 + 标题；勾选状态直接读写建世界那份 {@code GameRules}。
      */
-    private static Checkbox createSwitch(GameRules rules)
+    private static Checkbox createSwitch(CreateWorldScreen screen)
     {
         return new Checkbox(0, 0, WIDGET_WIDTH, WIDGET_HEIGHT,
-                Component.translatable(TITLE_KEY), rules.getBoolean(happy_mode.RULE), true)
+                Component.translatable(TITLE_KEY),
+                screen.getUiState().getGameRules().getBoolean(happy_mode.RULE), true)
         {
             @Override
             public void onPress()
             {
                 super.onPress();
                 // server 传 null：和原版游戏规则界面一样，这属于「建世界时那条路」，放行
+                GameRules rules = screen.getUiState().getGameRules();
                 rules.getRule(happy_mode.RULE).set(selected(), null);
             }
 
@@ -160,7 +169,8 @@ public final class happy_mode_create_world
             public void renderWidget(GuiGraphics graphics, int mouseX, int mouseY, float partialTick)
             {
                 // 先去「更多→游戏规则」改过的话，把勾选状态纠正过来（顺手把值再写回去，值不变）
-                syncFrom(this, rules);
+                // 原版游戏规则页保存时会替换 GameRules 对象，始终取当前草稿。
+                syncFrom(this, screen.getUiState().getGameRules());
 
                 setMessage(isMouseOver(mouseX, mouseY) && Screen.hasShiftDown()
                         ? Component.translatable(PARTY_KEY)

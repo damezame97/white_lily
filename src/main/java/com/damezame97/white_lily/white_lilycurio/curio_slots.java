@@ -32,11 +32,22 @@ import net.minecraft.resources.ResourceLocation;
  *     <li>中英 lang 各加一条 {@code curios.identifier.<id>}；</li>
  *     <li>在本类里补上 id / 语言键 / 贴图 id 常量。</li>
  * </ol>
+ *
+ * <h2>现在有两个栏</h2>
+ * <ul>
+ *     <li>{@code improvement}（改良）—— 数量与内容按档位发放，见
+ *         {@link improvement_loadout}；</li>
+ *     <li>{@code phantom_fragments}（幻影碎片）—— 只有数量按档位（1/2/4/5），
+ *         不自动发放任何东西，见 {@link phantom_fragments_slots}。</li>
+ * </ul>
  */
 public final class curio_slots
 {
     /** 栏位 id。Curios 的栏位 id 就是数据包文件名，且注册名必须小写，所以显示名走 lang。 */
     public static final String IMPROVEMENT = "improvement";
+
+    /** 第二个栏位 id：幻影碎片。 */
+    public static final String PHANTOM_FRAGMENTS = "phantom_fragments";
 
     /**
      * 栏位 id 的语言键前缀。Curios 用 {@code curios.identifier.<栏位 id>} 取栏位显示名，
@@ -50,6 +61,13 @@ public final class curio_slots
     /** 栏位底图 sprite id（= {@code assets/white_lily/textures/slot/improvement.png}）。 */
     public static final ResourceLocation IMPROVEMENT_ICON =
             new ResourceLocation(white_lily.MODID, "slot/" + IMPROVEMENT);
+
+    /** 「幻影碎片 / Phantom fragments」的语言键（<b>按需求留空</b>，内容由作者自己填）。 */
+    public static final String PHANTOM_FRAGMENTS_NAME_KEY = NAME_KEY_PREFIX + PHANTOM_FRAGMENTS;
+
+    /** 幻影碎片栏位底图 sprite id（= {@code assets/white_lily/textures/slot/phantom_fragments.png}）。 */
+    public static final ResourceLocation PHANTOM_FRAGMENTS_ICON =
+            new ResourceLocation(white_lily.MODID, "slot/" + PHANTOM_FRAGMENTS);
 
     /** 本模组所有栏位共用的校验器：物品需带 {@code curios:<栏位 id>} 标签（或 {@code curios:curio}）。 */
     public static final String VALIDATOR_TAG = "curios:tag";

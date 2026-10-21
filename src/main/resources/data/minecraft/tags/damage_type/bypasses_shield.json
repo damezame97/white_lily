@@ -3,6 +3,9 @@
   "values": [
     "white_lily:abnormal_mana",
     "white_lily:depletion",
-    "white_lily:nightmare"
+    "white_lily:nightmare",
+    "white_lily:load_burden",
+    "white_lily:mental_injury",
+    "white_lily:meltdown"
   ]
 }
