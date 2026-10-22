@@ -1,0 +1,27 @@
+{
+  "rewards": {
+    "recipes": [
+      "white_lily:coarse_cloth"
+    ]
+  },
+  "parent": "minecraft:recipes/root",
+  "criteria": {
+    "has_material": {
+      "conditions": {
+        "items": [
+          {
+            "items": [
+              "white_lily:hemp_stalk"
+            ]
+          }
+        ]
+      },
+      "trigger": "minecraft:inventory_changed"
+    }
+  },
+  "requirements": [
+    [
+      "has_material"
+    ]
+  ]
+}

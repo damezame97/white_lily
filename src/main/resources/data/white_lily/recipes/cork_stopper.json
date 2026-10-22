@@ -1,0 +1,16 @@
+{
+  "type": "white_lily:durable_tool_shapeless",
+  "ingredients": [
+    {
+      "tag": "white_lily:cork_logs"
+    },
+    {
+      "item": "minecraft:shears"
+    }
+  ],
+  "category": "misc",
+  "result": {
+    "count": 8,
+    "item": "white_lily:cork_stopper"
+  }
+}

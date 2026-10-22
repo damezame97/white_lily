@@ -1,0 +1,21 @@
+{
+  "type": "minecraft:crafting_shapeless",
+  "ingredients": [
+    {
+      "item": "white_lily:calming_flower"
+    },
+    {
+      "item": "white_lily:calming_flower"
+    },
+    {
+      "type": "forge:nbt",
+      "item": "minecraft:potion",
+      "nbt": "{Potion:\"minecraft:water\"}"
+    }
+  ],
+  "result": {
+    "count": 1,
+    "item": "white_lily:calming_flower_tea"
+  },
+  "category": "misc"
+}

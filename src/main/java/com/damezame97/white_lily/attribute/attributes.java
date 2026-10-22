@@ -161,6 +161,10 @@ public final class attributes {
     public static final RegistryObject<Attribute> STAMINA =
             register("stamina", 0.0D, -10086.0D, 10086.0D);
 
+    /** 感染抗性：0.01 = 1%，仅降低新增感染，不修改已有感染或症状阈值。 */
+    public static final RegistryObject<Attribute> INFECTION_RESISTANCE =
+            register("infection_resistance", 0.0D, 0.0D, 0.8D);
+
     /** 储存饱和度上限：每 1 点让「储存饱和度」的上限比饥饿值多 1（原版是饥饿值本身）。 */
     public static final RegistryObject<Attribute> BUILDING_ENDURANCE =
             register("building_endurance", 0.0D, 0.0D, 10086.0D);

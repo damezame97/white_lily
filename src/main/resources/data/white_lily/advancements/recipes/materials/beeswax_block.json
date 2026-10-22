@@ -1,0 +1,27 @@
+{
+  "rewards": {
+    "recipes": [
+      "white_lily:beeswax_block"
+    ]
+  },
+  "parent": "minecraft:recipes/root",
+  "criteria": {
+    "has_material": {
+      "conditions": {
+        "items": [
+          {
+            "items": [
+              "minecraft:honeycomb"
+            ]
+          }
+        ]
+      },
+      "trigger": "minecraft:inventory_changed"
+    }
+  },
+  "requirements": [
+    [
+      "has_material"
+    ]
+  ]
+}

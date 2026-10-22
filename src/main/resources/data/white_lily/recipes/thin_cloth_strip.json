@@ -1,0 +1,16 @@
+{
+  "type": "white_lily:durable_tool_shapeless",
+  "ingredients": [
+    {
+      "item": "white_lily:coarse_cloth"
+    },
+    {
+      "item": "minecraft:shears"
+    }
+  ],
+  "category": "misc",
+  "result": {
+    "count": 3,
+    "item": "white_lily:thin_cloth_strip"
+  }
+}

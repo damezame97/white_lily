@@ -32,6 +32,26 @@ public final class mob_effects
     public static final RegistryObject<MobEffect> IMPURE_MAGIC =
             MOB_EFFECTS.register(impure_magic.NAME, impure_magic::new);
 
+    public static final RegistryObject<MobEffect> HEALTHY_CONDITION = infection("healthy_condition", true, 0x69B85C);
+    public static final RegistryObject<MobEffect> DELAYED_HEALING = infection("delayed_healing", false, 0xA38D62);
+    public static final RegistryObject<MobEffect> RAPID_BREATHING = infection("rapid_breathing", false, 0x91A7B2);
+    public static final RegistryObject<MobEffect> WOUND_SEEPAGE = infection("wound_seepage", false, 0xA73439);
+    public static final RegistryObject<MobEffect> INFECTION_ANXIETY = infection("infection_anxiety", false, 0xAA8848);
+    public static final RegistryObject<MobEffect> PERCEPTION_DISORDER = infection("perception_disorder", false, 0x655589);
+    public static final RegistryObject<MobEffect> MENTAL_DISTRACTION = infection("mental_distraction", false, 0x8D68AE);
+    public static final RegistryObject<MobEffect> BRIEF_LUCIDITY = infection("brief_lucidity", true, 0xC7D9BC);
+    public static final RegistryObject<MobEffect> RECOVERY_FATIGUE = infection("recovery_fatigue", false, 0x93805B);
+    public static final RegistryObject<MobEffect> SHIVERING = infection("shivering", false, 0x8DB8CD);
+    public static final RegistryObject<MobEffect> UNSTABLE_SPELLCASTING = infection("unstable_spellcasting", false, 0xA45DC4);
+    public static final RegistryObject<MobEffect> INFECTION_BLINDNESS = infection("infection_blindness", false, 0x272B35);
+    public static final RegistryObject<MobEffect> BANDAGED = MOB_EFFECTS.register("bandaged", bandaged::new);
+    public static final RegistryObject<MobEffect> WOUND_SUPPRESSION = infection("wound_suppression", true, 0x96B970);
+
+    private static RegistryObject<MobEffect> infection(String name, boolean beneficial, int color)
+    {
+        return MOB_EFFECTS.register(name, () -> new infection_effect(beneficial, color));
+    }
+
     private mob_effects()
     {
     }

@@ -1,0 +1,7 @@
+{
+  "parent": "minecraft:block/crop",
+  "textures": {
+    "crop": "white_lily:block/hemp_stage3"
+  },
+  "render_type": "minecraft:cutout"
+}

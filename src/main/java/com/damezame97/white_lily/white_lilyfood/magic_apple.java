@@ -190,7 +190,7 @@ public class magic_apple extends Item
         data.addMana(amount);
 
         // 只有真实玩家才需要（也才能）同步。
-        if (entity instanceof ServerPlayer serverPlayer)
+        if (entity instanceof ServerPlayer serverPlayer && serverPlayer.connection != null)
         {
             PacketDistributor.sendToPlayer(serverPlayer, new SyncManaPacket(data));
         }

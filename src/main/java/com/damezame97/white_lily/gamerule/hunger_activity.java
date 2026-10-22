@@ -152,7 +152,8 @@ public final class hunger_activity
         }
 
         float perMeter = happy_mode_hunger.movementCostPerMeter(player.isSwimming(), player.isSprinting());
-        state.add(-(float) (distance * perMeter));
+        state.add(-(float) (distance * perMeter * com.damezame97.white_lily.infection.infection_symptom_rules
+                .movementMultiplier(player, player.isSwimming(), player.isSprinting())));
     }
 
     /** 原版饥饿效果每秒扣、原版饱和效果每秒加。 */
