@@ -1,6 +1,3 @@
 {
-  "type": "forge:add_features",
-  "biomes": "#white_lily:bitterleaf_habitats",
-  "step": "vegetal_decoration",
-  "features": "white_lily:bitterleaf_patch"
+  "type": "forge:none"
 }

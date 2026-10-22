@@ -140,6 +140,11 @@ public final class ReviewRegressionGameTests
         san_procedures.onRespawn(new PlayerEvent.PlayerRespawnEvent(fake,false));
         infection_network.sync(fake,true);
         com.damezame97.white_lily.white_lilyfood.magic_apple.grantMana(fake,1);
+        var debt=new com.damezame97.white_lily.capability.suffering_data();debt.add(3,0);
+        com.damezame97.white_lily.procedures.stored_suffering_events.sync(fake,debt,true);
+        yes(h,debt.total()==3 && Float.isNaN(debt.lastDisplayed),"无连接时戒指提示安全跳过，不清欠款或伪造已发送缓存");
+        com.damezame97.white_lily.procedures.stored_suffering_events.login(new PlayerEvent.PlayerLoggedInEvent(fake));
+        com.damezame97.white_lily.procedures.stored_suffering_events.respawn(new PlayerEvent.PlayerRespawnEvent(fake,false));
         h.succeed();
     }
 

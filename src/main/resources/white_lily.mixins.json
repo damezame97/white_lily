@@ -13,7 +13,13 @@
     "MixinItemStack",
     "MixinPlayer",
     "MixinSlot",
-    "infection.MixinInfectionSpellCost"
+    "infection.MixinInfectionSpellCost",
+    "research.ResearchCraftingContainerAccess",
+    "research.ResearchResultSlotAccess",
+    "research.MixinResearchResultPickup",
+    "research.MixinResearchQuickMove",
+    "research.MixinResearchRecipeBook",
+    "research.MixinResearchRecipePlacement"
   ],
   "client": [
     "client.MixinTitleScreen",

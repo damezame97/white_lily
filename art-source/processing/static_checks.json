@@ -1,0 +1,137 @@
+{
+  "kind": "static file checks only; not in-game verification",
+  "items": {
+    "plant_fiber": {
+      "size": [
+        16,
+        16
+      ],
+      "mode": "RGBA",
+      "bounds": [
+        2,
+        2,
+        15,
+        15
+      ],
+      "colors": 7
+    },
+    "wooden_tray": {
+      "size": [
+        16,
+        16
+      ],
+      "mode": "RGBA",
+      "bounds": [
+        1,
+        2,
+        15,
+        15
+      ],
+      "colors": 9
+    },
+    "stone_mortar": {
+      "size": [
+        16,
+        16
+      ],
+      "mode": "RGBA",
+      "bounds": [
+        2,
+        1,
+        15,
+        15
+      ],
+      "colors": 10
+    },
+    "clay_bowl": {
+      "size": [
+        16,
+        16
+      ],
+      "mode": "RGBA",
+      "bounds": [
+        2,
+        3,
+        15,
+        14
+      ],
+      "colors": 7
+    },
+    "glass_tube": {
+      "size": [
+        16,
+        16
+      ],
+      "mode": "RGBA",
+      "bounds": [
+        2,
+        1,
+        15,
+        15
+      ],
+      "colors": 4
+    },
+    "filter_paper": {
+      "size": [
+        16,
+        16
+      ],
+      "mode": "RGBA",
+      "bounds": [
+        2,
+        2,
+        14,
+        14
+      ],
+      "colors": 5
+    },
+    "desiccant_packet": {
+      "size": [
+        16,
+        16
+      ],
+      "mode": "RGBA",
+      "bounds": [
+        2,
+        2,
+        14,
+        15
+      ],
+      "colors": 8
+    },
+    "herbal_residue": {
+      "size": [
+        16,
+        16
+      ],
+      "mode": "RGBA",
+      "bounds": [
+        2,
+        4,
+        15,
+        15
+      ],
+      "colors": 7
+    },
+    "herbal_pouch": {
+      "size": [
+        16,
+        16
+      ],
+      "mode": "RGBA",
+      "bounds": [
+        1,
+        1,
+        15,
+        15
+      ],
+      "colors": 11
+    }
+  },
+  "checks": [
+    "9 native 16x16 transparent item textures with 1px margins; 7 native 16x16 block materials; independent models; native cuboid UVs and four facings; 256x256 UI",
+    "Bilingual names, three description lines, usage text and screen labels exist; tab title translation has no color escape",
+    "8 requested ordinary crafting recipes and unlocks; existing direct hemp-to-cloth route retained; old medical crafting routes removed; no invented pouch/residue crafting"
+  ],
+  "model_elements": 29
+}

@@ -1,0 +1,19 @@
+{
+  "type": "minecraft:crafting_shapeless",
+  "category": "misc",
+  "ingredients": [
+    {
+      "item": "minecraft:paper"
+    },
+    {
+      "item": "minecraft:sand"
+    },
+    {
+      "item": "white_lily:charcoal_powder"
+    }
+  ],
+  "result": {
+    "item": "white_lily:desiccant_packet",
+    "count": 2
+  }
+}

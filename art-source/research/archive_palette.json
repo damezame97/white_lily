@@ -1,0 +1,22 @@
+{
+  "wood": [
+    "#211a15",
+    "#2d2119",
+    "#3c2a1c",
+    "#503725",
+    "#6f4c30"
+  ],
+  "paper": [
+    "#e9d6ab",
+    "#ecdbb7",
+    "#e6d1a5",
+    "#e4cea0",
+    "#f0dfba"
+  ],
+  "atlas": [
+    256,
+    256
+  ],
+  "reference": "docs/previews/handbook_archive_style_reference_v1.png",
+  "reference_is_not_packaged": true
+}

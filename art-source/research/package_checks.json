@@ -1,0 +1,92 @@
+{
+  "scope": "Static resource/JAR inspection, not a game or multiplayer test",
+  "item_png": {
+    "size": [
+      16,
+      16
+    ],
+    "mode": "RGBA",
+    "palette_colors_including_transparency": 18,
+    "alpha_range": [
+      0,
+      255
+    ]
+  },
+  "gui_atlas_size": [
+    256,
+    256
+  ],
+  "translated_keys_per_locale": 118,
+  "visible_config_nodes": [
+    "white_lily:bitterleaf",
+    "white_lily:bitterleaf_paste",
+    "white_lily:yarrow",
+    "white_lily:yarrow_dressing",
+    "white_lily:calming_flower",
+    "white_lily:calming_flower_tea",
+    "white_lily:coarse_cloth",
+    "white_lily:simple_bandage",
+    "white_lily:clean_fine_bandage"
+  ],
+  "jar": "D:\\cao的mod\\white_lily\\build\\libs\\white_lily-0.1.2.jar",
+  "bytes": 887735,
+  "sha256": "a6742a209e7397231ee7f481283ff45b03f4e96c16d39f369f9ef05020c43840",
+  "resources_verified_byte_for_byte": [
+    "white_lily.mixins.json",
+    "assets/white_lily/lang/en_us.json",
+    "assets/white_lily/lang/zh_cn.json",
+    "assets/white_lily/models/item/calming_flower_tea.json",
+    "assets/white_lily/models/item/investigation_handbook.json",
+    "assets/white_lily/textures/gui/research_archive.png",
+    "assets/white_lily/textures/gui/research_atlas.png",
+    "assets/white_lily/textures/item/investigation_handbook.png",
+    "data/white_lily/recipes/calming_flower_tea.json",
+    "data/white_lily/recipes/investigation_handbook.json",
+    "data/white_lily/research/handbook.json",
+    "data/white_lily/advancements/recipes/medical/calming_flower_tea.json",
+    "data/white_lily/advancements/recipes/processing/investigation_handbook.json",
+    "data/white_lily/forge/biome_modifier/add_bitterleaf.json",
+    "data/white_lily/forge/biome_modifier/add_calming_flower.json",
+    "data/white_lily/forge/biome_modifier/add_hemp.json",
+    "data/white_lily/forge/biome_modifier/add_yarrow.json"
+  ],
+  "research_classes_packaged": [
+    "com/damezame97/white_lily/client/InvestigationScreen.class",
+    "com/damezame97/white_lily/client/research_client.class",
+    "com/damezame97/white_lily/crafting/research_crafting_recipe.class",
+    "com/damezame97/white_lily/item/investigation_handbook.class",
+    "com/damezame97/white_lily/mixin/research/MixinResearchQuickMove.class",
+    "com/damezame97/white_lily/mixin/research/MixinResearchRecipeBook.class",
+    "com/damezame97/white_lily/mixin/research/MixinResearchRecipePlacement.class",
+    "com/damezame97/white_lily/mixin/research/MixinResearchResultPickup.class",
+    "com/damezame97/white_lily/mixin/research/ResearchCraftingContainerAccess.class",
+    "com/damezame97/white_lily/mixin/research/ResearchResultSlotAccess.class",
+    "com/damezame97/white_lily/research/research_capability$1.class",
+    "com/damezame97/white_lily/research/research_capability$Provider.class",
+    "com/damezame97/white_lily/research/research_capability.class",
+    "com/damezame97/white_lily/research/research_catalog$Category.class",
+    "com/damezame97/white_lily/research/research_catalog$Chapter.class",
+    "com/damezame97/white_lily/research/research_catalog$Material.class",
+    "com/damezame97/white_lily/research/research_catalog$Node.class",
+    "com/damezame97/white_lily/research/research_catalog$Parsed.class",
+    "com/damezame97/white_lily/research/research_catalog.class",
+    "com/damezame97/white_lily/research/research_crafting_gate.class",
+    "com/damezame97/white_lily/research/research_events.class",
+    "com/damezame97/white_lily/research/research_network$Request.class",
+    "com/damezame97/white_lily/research/research_network$Snapshot.class",
+    "com/damezame97/white_lily/research/research_network.class",
+    "com/damezame97/white_lily/research/research_progress.class",
+    "com/damezame97/white_lily/research/research_service$EditResult.class",
+    "com/damezame97/white_lily/research/research_service$SubmitResult.class",
+    "com/damezame97/white_lily/research/research_service.class"
+  ],
+  "independent_research_mixins": [
+    "research.ResearchCraftingContainerAccess",
+    "research.ResearchResultSlotAccess",
+    "research.MixinResearchResultPickup",
+    "research.MixinResearchQuickMove",
+    "research.MixinResearchRecipeBook",
+    "research.MixinResearchRecipePlacement"
+  ],
+  "plant_generation": "all four biome modifiers remain forge:none"
+}

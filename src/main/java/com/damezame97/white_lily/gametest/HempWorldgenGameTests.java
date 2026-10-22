@@ -39,7 +39,7 @@ public final class HempWorldgenGameTests
         {
             var features=registry.getHolderOrThrow(key).value().getGenerationSettings().features();
             yes(h,features.stream().flatMap(set->set.stream()).filter(holder->holder.unwrapKey()
-                    .map(k->k.location().equals(ID)).orElse(false)).count()==1,"目标群系仅挂载一次");
+                    .map(k->k.location().equals(ID)).orElse(false)).count()==0,"自然生成暂停：原目标群系不挂载野生麻");
         }
         for(var key:List.of(Biomes.DESERT,Biomes.SNOWY_PLAINS,Biomes.NETHER_WASTES,Biomes.THE_END))
             yes(h,registry.getHolderOrThrow(key).value().getGenerationSettings().features().stream().flatMap(set->set.stream())

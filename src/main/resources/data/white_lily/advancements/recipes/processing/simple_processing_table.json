@@ -1,9 +1,5 @@
 {
-  "rewards": {
-    "recipes": [
-      "white_lily:yarrow_dressing"
-    ]
-  },
+  "parent": "minecraft:recipes/root",
   "criteria": {
     "has_material": {
       "trigger": "minecraft:inventory_changed",
@@ -11,7 +7,7 @@
         "items": [
           {
             "items": [
-              "white_lily:yarrow"
+              "white_lily:wooden_tray"
             ]
           }
         ]
@@ -23,5 +19,9 @@
       "has_material"
     ]
   ],
-  "parent": "minecraft:recipes/root"
+  "rewards": {
+    "recipes": [
+      "white_lily:simple_processing_table"
+    ]
+  }
 }

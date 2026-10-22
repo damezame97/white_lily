@@ -1,0 +1,8 @@
+{
+  "type": "white_lily:simple_processing",
+  "tool": { "item": "white_lily:stone_mortar" },
+  "tool_damage": 1,
+  "ingredients": [ { "ingredient": { "item": "white_lily:hemp_stalk" }, "count": 1 } ],
+  "result": { "item": "white_lily:plant_fiber", "count": 2 },
+  "processing_time": 40
+}

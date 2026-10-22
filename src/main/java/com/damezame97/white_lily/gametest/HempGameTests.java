@@ -173,11 +173,18 @@ public final class HempGameTests
     @GameTest(template="empty", timeoutTicks=200)
     public static void farmlandGrowthBoneMealAndWildSoilsAreSeparate(GameTestHelper h)
     {
-        var level=h.getLevel();BlockPos pos=h.absolutePos(new BlockPos(2,30,2));
+        // 土壤、作物、光源均放在3x3x3空结构内，随测试正确清理。
+        var level=h.getLevel();BlockPos pos=h.absolutePos(new BlockPos(1,1,1));
         level.setBlock(pos.east(),Blocks.GLOWSTONE.defaultBlockState(),3);
-        // 等待实际照明完成，不把固定等待20刻当作照明已完成的保证。
-        h.startSequence().thenWaitUntil(()->yes(h,level.getRawBrightness(pos,0)>=9,"等待作物测试光源完成照明"))
-                .thenExecute(()-> {
+        // GameTestServer不会按50ms等待下一刻；200模拟刻可能早于异步照明完成。
+        // 使用原版照明任务的完成屏障，并继续泵送区块任务；5秒真实时间防止死等。
+        var chunks=level.getChunkSource();var lighting=chunks.getLightEngine();
+        var ready=lighting.lightChunk(level.getChunkAt(pos),false).orTimeout(5,java.util.concurrent.TimeUnit.SECONDS);
+        level.getServer().managedBlock(()->{
+            lighting.tryScheduleUpdate();chunks.pollTask();return ready.isDone();
+        });
+        ready.join();
+        yes(h,level.getRawBrightness(pos,0)>=9,"原版照明完成后作物位置必须实际达到9级光照");
             var crop=(hemp_crop)medical_blocks.HEMP_CROP.get();var wild=medical_blocks.WILD_HEMP.get();
             for(Block soil:new Block[]{Blocks.DIRT,Blocks.GRASS_BLOCK,Blocks.COARSE_DIRT,Blocks.PODZOL,Blocks.OAK_LEAVES,Blocks.SAND})
             {
@@ -205,7 +212,6 @@ public final class HempGameTests
             yes(h,!(items.HEMP_STALK.get() instanceof BlockItem)&&items.HEMP_SEEDS.get() instanceof ItemNameBlockItem,"麻秆不是种植物品");
             yes(h,crop.defaultBlockState().getCollisionShape(level,pos).isEmpty(),"作物无实体碰撞");
             level.setBlock(pos,Blocks.AIR.defaultBlockState(),3);level.setBlock(pos.east(),Blocks.AIR.defaultBlockState(),3);h.succeed();
-        });
     }
 
     @GameTest(template="empty")

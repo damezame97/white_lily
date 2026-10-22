@@ -31,7 +31,7 @@ public class BasicMaterialsGameTests
     @GameTest(template = "empty")
     public static void basicMaterialsAndPrescriptionDescriptions(GameTestHelper helper)
     {
-        CreativeModeTab tab = creative_tabs.MISGUIDED_DELICACIES.get();
+        CreativeModeTab tab = creative_tabs.MISGUIDED_LIVELIHOOD.get();
         tab.buildContents(new CreativeModeTab.ItemDisplayParameters(
                 helper.getLevel().enabledFeatures(), true, helper.getLevel().registryAccess()));
         for (String name : List.of("coarse_cloth", "thin_cloth_strip", "cork_stopper",

@@ -1,0 +1,22 @@
+{
+  "item": {
+    "path": "src/main/resources/assets/white_lily/textures/item/investigation_handbook.png",
+    "size": [
+      16,
+      16
+    ],
+    "mode": "RGBA",
+    "palette_colors": 18,
+    "alpha_values": [
+      0,
+      255
+    ]
+  },
+  "atlas": {
+    "size": [
+      256,
+      256
+    ]
+  },
+  "preview_is_game_screenshot": false
+}
