@@ -170,13 +170,14 @@ public final class HempGameTests
         h.succeed();
     }
 
-    @GameTest(template="empty")
+    @GameTest(template="empty", timeoutTicks=200)
     public static void farmlandGrowthBoneMealAndWildSoilsAreSeparate(GameTestHelper h)
     {
         var level=h.getLevel();BlockPos pos=h.absolutePos(new BlockPos(2,30,2));
         level.setBlock(pos.east(),Blocks.GLOWSTONE.defaultBlockState(),3);
-        // GameTest 世界不保证天空光，等待服务端处理真实光源后再检查。
-        h.runAfterDelay(20,()-> {
+        // 等待实际照明完成，不把固定等待20刻当作照明已完成的保证。
+        h.startSequence().thenWaitUntil(()->yes(h,level.getRawBrightness(pos,0)>=9,"等待作物测试光源完成照明"))
+                .thenExecute(()-> {
             var crop=(hemp_crop)medical_blocks.HEMP_CROP.get();var wild=medical_blocks.WILD_HEMP.get();
             for(Block soil:new Block[]{Blocks.DIRT,Blocks.GRASS_BLOCK,Blocks.COARSE_DIRT,Blocks.PODZOL,Blocks.OAK_LEAVES,Blocks.SAND})
             {

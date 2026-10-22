@@ -47,7 +47,7 @@ public final class infection_network
 
     public static void sync(Player player, boolean force)
     {
-        if (!(player instanceof ServerPlayer serverPlayer)) return;
+        if (!(player instanceof ServerPlayer serverPlayer) || serverPlayer.connection == null) return;
         player_variables.infection(player).ifPresent(data -> {
             if (!needsSync(data, force)) return;
             CHANNEL.send(PacketDistributor.PLAYER.with(() -> serverPlayer), new Snapshot(data.units(), data.passiveTicks()));

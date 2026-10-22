@@ -13,6 +13,7 @@ import java.util.UUID;
 public final class infection_modifiers
 {
     private static final String PREFIX = "white_lily:infection/";
+    private static final java.util.Map<String, UUID> IDS = new java.util.concurrent.ConcurrentHashMap<>();
 
     public static AttributeModifier create(ResourceLocation rule, Attribute attribute, double amount,
                                            AttributeModifier.Operation operation)
@@ -24,8 +25,8 @@ public final class infection_modifiers
 
     private static UUID id(String name, Attribute attribute)
     {
-        return UUID.nameUUIDFromBytes((name + "|" + ForgeRegistries.ATTRIBUTES.getKey(attribute))
-                .getBytes(StandardCharsets.UTF_8));
+        String key = name + "|" + ForgeRegistries.ATTRIBUTES.getKey(attribute);
+        return IDS.computeIfAbsent(key, value -> UUID.nameUUIDFromBytes(value.getBytes(StandardCharsets.UTF_8)));
     }
 
     public static boolean owned(AttributeModifier modifier, Attribute attribute)

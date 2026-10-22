@@ -19,7 +19,7 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 @Mixin(value = AbstractSpell.class, remap = false)
 public abstract class MixinInfectionSpellCost
 {
-    @Redirect(method = "canBeCastedBy", at = @At(value = "INVOKE",
+    @Redirect(method = InfectionMixinPlugin.CHECK, at = @At(value = "INVOKE",
             target = "Lio/redspace/ironsspellbooks/api/spells/AbstractSpell;getManaCost(I)I"), remap = false)
     private int whiteLily$check(AbstractSpell spell, int level, int spellLevel, CastSource source, MagicData data, Player player)
     {
@@ -27,7 +27,7 @@ public abstract class MixinInfectionSpellCost
         return player.level().isClientSide ? cost : infection_mana.cost(player, cost);
     }
 
-    @Redirect(method = "castSpell", at = @At(value = "INVOKE",
+    @Redirect(method = InfectionMixinPlugin.PAY, at = @At(value = "INVOKE",
             target = "Lio/redspace/ironsspellbooks/api/spells/AbstractSpell;getManaCost(I)I"), remap = false)
     private int whiteLily$payment(AbstractSpell spell, int level, Level world, int spellLevel, ServerPlayer player,
                                   CastSource source, boolean cooldown)
@@ -35,7 +35,7 @@ public abstract class MixinInfectionSpellCost
         return infection_mana.cost(player, spell.getManaCost(level));
     }
 
-    @Inject(method = "getManaCost", at = @At("RETURN"), cancellable = true, remap = false)
+    @Inject(method = "getManaCost(I)I", at = @At("RETURN"), cancellable = true, remap = false)
     private void whiteLily$display(int level, CallbackInfoReturnable<Integer> callback)
     {
         // 集成服务器与客户端共享类，必须再核实当前线程，避免用本地玩家给远端玩家加价。

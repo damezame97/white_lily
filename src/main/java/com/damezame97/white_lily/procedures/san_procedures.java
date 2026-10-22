@@ -334,7 +334,7 @@ public final class san_procedures
         Player player = event.getEntity();
         refresh(player);
         // 明确在新实体连接就绪后同步当前真实属性，避免旧面板缓存。
-        if (player instanceof ServerPlayer serverPlayer)
+        if (player instanceof ServerPlayer serverPlayer && serverPlayer.connection != null)
         {
             serverPlayer.connection.send(new net.minecraft.network.protocol.game.ClientboundUpdateAttributesPacket(
                     player.getId(), player.getAttributes().getSyncableAttributes()));

@@ -39,7 +39,10 @@ public final class infection_damage
         {
             // SmallMagicFireball.onHitEntity 的 Blaze Storm 命中；Fireball 的范围爆炸不冒充直接命中。
             if (spell.spell() == null) return false;
-            var rule = SPELL_HITS.get(ResourceLocation.tryParse(spell.spell().getSpellId()));
+            String raw = spell.spell().getSpellId();
+            ResourceLocation id = raw == null ? null : ResourceLocation.tryParse(raw);
+            if (id == null) return false;
+            var rule = SPELL_HITS.get(id);
             return rule != null && rule.test(spell);
         }
         return source.is(DIRECT) || source.is(ModDamageTypes.BULLETS_TAG);

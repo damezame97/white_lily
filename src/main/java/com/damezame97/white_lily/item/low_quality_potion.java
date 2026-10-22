@@ -104,6 +104,8 @@ public class low_quality_potion extends Item
     @Override
     public ItemStack finishUsingItem(ItemStack stack, Level level, LivingEntity entity)
     {
+        // 动画可以在两端完成；物品、瓶子、统计和效果统一由服务端结算。
+        if (level.isClientSide) return stack;
         applyOnConsume(entity, entity.getRandom());
         Player player = entity instanceof Player ? (Player) entity : null;
         if (player instanceof ServerPlayer serverPlayer)
@@ -131,12 +133,12 @@ public class low_quality_potion extends Item
         // 剩余药剂留在手中，空瓶进背包；背包满时只由服务端掉落。
         if (player != null)
         {
-            if (!player.getInventory().add(bottle) && !level.isClientSide)
+            if (!player.getInventory().add(bottle))
             {
                 player.drop(bottle, false);
             }
         }
-        else if (!level.isClientSide)
+        else
         {
             entity.spawnAtLocation(bottle);
         }

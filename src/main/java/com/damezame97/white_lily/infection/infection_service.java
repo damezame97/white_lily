@@ -15,6 +15,14 @@ public final class infection_service
 {
     public record Conditions(boolean validHealth, double healthRatio, infection_math.Injury injury,
                              double stamina, double risk, double resistance) { }
+    public record Health(boolean valid, double ratio) { }
+
+    public static Health health(Player player)
+    {
+        double current = player.getHealth(), maximum = player.getMaxHealth();
+        boolean valid = Double.isFinite(current) && Double.isFinite(maximum) && current > 0 && maximum > 0;
+        return new Health(valid, valid ? Math.max(0, Math.min(1, current / maximum)) : 1);
+    }
     public enum Status { TRIGGERED, MISSED, DISABLED, INELIGIBLE, UNKNOWN_SOURCE, INVALID_HEALTH, NO_DATA }
     public record Result(Status status, int addedUnits, int afterUnits)
     {
@@ -38,14 +46,11 @@ public final class infection_service
 
     public static Conditions conditions(Player player)
     {
-        double health = player.getHealth();
-        double max = player.getMaxHealth();
-        boolean valid = Double.isFinite(health) && Double.isFinite(max) && health > 0 && max > 0;
-        double ratio = valid ? Math.max(0, Math.min(1, health / max)) : 1.0D;
+        Health health = health(player);
         double stamina = stamina(player);
         AttributeInstance resistanceAttribute = player.getAttribute(attributes.INFECTION_RESISTANCE.get());
         double resistance = infection_math.resistance(resistanceAttribute == null ? 0 : resistanceAttribute.getValue());
-        return new Conditions(valid, ratio, infection_math.injury(ratio), stamina, infection_math.risk(stamina), resistance);
+        return new Conditions(health.valid(), health.ratio(), infection_math.injury(health.ratio()), stamina, infection_math.risk(stamina), resistance);
     }
 
     public static boolean excluded(Player player)
@@ -129,8 +134,11 @@ public final class infection_service
         player_variables.infection(player).ifPresent(data -> {
             int before = data.units();
             data.setUnits(units);
-            Conditions conditions = conditions(player);
-            if (conditions.validHealth() && conditions.healthRatio() > 0.70D) data.setPassiveTicks(0);
+            if (data.passiveTicks() > 0)
+            {
+                Health health = health(player);
+                if (health.valid() && health.ratio() > 0.70D) data.setPassiveTicks(0);
+            }
             if (before != data.units())
             {
                 infection_network.sync(player, false);
@@ -146,15 +154,15 @@ public final class infection_service
         player_variables.infection(player).ifPresent(data -> {
             if (data.lastTick == clock) return;
             data.lastTick = clock;
-            Conditions conditions = conditions(player);
             // 清空条件优先于开关/创造模式暂停条件。
-            if (data.units() == 0 || data.units() == infection_state.MAX_UNITS
-                    || (conditions.validHealth() && conditions.healthRatio() > 0.70D))
+            if (data.units() == 0 || data.units() == infection_state.MAX_UNITS)
             {
                 data.setPassiveTicks(0);
                 return;
             }
-            if (!Config.infectionEnabled || excluded(player) || !conditions.validHealth()) return;
+            Health health = health(player);
+            if (health.valid() && health.ratio() > 0.70D) { data.setPassiveTicks(0); return; }
+            if (!Config.infectionEnabled || excluded(player) || !health.valid()) return;
             int ticks = data.passiveTicks() + 1;
             if (ticks < infection_state.PERIOD)
             {
@@ -162,6 +170,8 @@ public final class infection_service
                 return;
             }
             data.setPassiveTicks(0);
+            // 每刻只推进整数计时；完整耐力修正与抗性公式只在1200刻结算时读取。
+            Conditions conditions = conditions(player);
             int delta = infection_math.passive(conditions.injury(), conditions.risk(), conditions.resistance());
             int before = data.units();
             setUnits(player, Math.min(infection_state.MAX_UNITS, data.units() + delta));
