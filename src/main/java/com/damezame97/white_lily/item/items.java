@@ -15,7 +15,7 @@ import net.minecraftforge.registries.RegistryObject;
 /**
  * 本模组的物品注册表（所有物品的唯一注册入口）。
  *
- * <p>目前有两个条目：</p>
+ * <p>所有食物、材料、工具和方块物品均复用本入口；公开展示由创造栏的明确清单决定。</p>
  * <ol>
  *     <li>{@link #MAGIC_APPLE}：「魔力苹果」，真正的食物类物品，类放在
  *         {@code com.damezame97.white_lily.white_lilyfood} 包里；</li>
@@ -91,6 +91,21 @@ public final class items
 
     public static final RegistryObject<Item> HEMP_SEEDS = ITEMS.register("hemp_seeds", hemp_seeds::new);
     public static final RegistryObject<Item> HEMP_STALK = ITEMS.register("hemp_stalk", basic_material_item::new);
+
+    public static final RegistryObject<Item> PLANT_FIBER = ITEMS.register("plant_fiber", basic_material_item::new);
+    public static final RegistryObject<Item> WOODEN_TRAY = ITEMS.register("wooden_tray", basic_material_item::new);
+    public static final RegistryObject<Item> STONE_MORTAR = ITEMS.register("stone_mortar", () ->
+            new basic_material_item(new Item.Properties().durability(128), 2));
+    public static final RegistryObject<Item> CLAY_BOWL = ITEMS.register("clay_bowl", basic_material_item::new);
+    public static final RegistryObject<Item> GLASS_TUBE = ITEMS.register("glass_tube", basic_material_item::new);
+    public static final RegistryObject<Item> FILTER_PAPER = ITEMS.register("filter_paper", basic_material_item::new);
+    public static final RegistryObject<Item> DESICCANT_PACKET = ITEMS.register("desiccant_packet", basic_material_item::new);
+    public static final RegistryObject<Item> HERBAL_RESIDUE = ITEMS.register("herbal_residue", basic_material_item::new);
+    public static final RegistryObject<Item> HERBAL_POUCH = ITEMS.register("herbal_pouch", () ->
+            new basic_material_item(new Item.Properties().stacksTo(64), 1));
+    public static final RegistryObject<Item> INVESTIGATION_HANDBOOK = ITEMS.register("investigation_handbook", investigation_handbook::new);
+    public static final RegistryObject<Item> SIMPLE_PROCESSING_TABLE = ITEMS.register("simple_processing_table", () ->
+            new processing_table_item(com.damezame97.white_lily.block.medical_blocks.SIMPLE_PROCESSING_TABLE.get()));
 
     public static final RegistryObject<Item> SIMPLE_BANDAGE = ITEMS.register("simple_bandage", () -> new medical_item(medical_actions.Kind.SIMPLE));
     public static final RegistryObject<Item> CLEAN_FINE_BANDAGE = ITEMS.register("clean_fine_bandage", () -> new medical_item(medical_actions.Kind.FINE));

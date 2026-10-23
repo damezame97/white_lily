@@ -1,0 +1,29 @@
+{
+  "scope": "Static source/resource/JAR check, not multiplayer or UI testing",
+  "nodes": [
+    "white_lily:bitterleaf",
+    "white_lily:bitterleaf_paste",
+    "white_lily:yarrow",
+    "white_lily:yarrow_dressing",
+    "white_lily:calming_flower",
+    "white_lily:calming_flower_tea",
+    "white_lily:coarse_cloth",
+    "white_lily:simple_bandage",
+    "white_lily:clean_fine_bandage"
+  ],
+  "recipe_bindings": {
+    "white_lily:processing/bitterleaf_paste": "white_lily:bitterleaf_paste",
+    "white_lily:processing/yarrow_dressing": "white_lily:yarrow_dressing",
+    "white_lily:calming_flower_tea": "white_lily:calming_flower_tea",
+    "white_lily:simple_bandage": "white_lily:simple_bandage",
+    "white_lily:clean_fine_bandage_beeswax": "white_lily:clean_fine_bandage",
+    "white_lily:clean_fine_bandage_honey": "white_lily:clean_fine_bandage"
+  },
+  "all_json_png_packaged_identically": 248,
+  "existing_crafting_and_processing_numbers": "unchanged; compared to pre-task backup",
+  "old_calming_flower_route": "stable IDs, requirements and archives unchanged",
+  "worldgen": "all four disabled",
+  "jar": "D:\\cao的mod\\white_lily\\build\\libs\\white_lily-0.1.2.jar",
+  "bytes": 887735,
+  "sha256": "a6742a209e7397231ee7f481283ff45b03f4e96c16d39f369f9ef05020c43840"
+}

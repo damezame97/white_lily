@@ -1,0 +1,19 @@
+{
+  "outline": "#30271f",
+  "cover_dark": "#493025",
+  "cover": "#63432c",
+  "cover_light": "#785237",
+  "spine_dark": "#805a3b",
+  "spine": "#a78054",
+  "spine_light": "#b99a68",
+  "paper_dark": "#aa9b76",
+  "paper": "#d3c9a4",
+  "paper_light": "#eee5c6",
+  "label_dark": "#ad9454",
+  "label": "#d4bd75",
+  "label_light": "#e2ce8b",
+  "leaf_dark": "#314d32",
+  "leaf": "#536c3c",
+  "bookmark_dark": "#54252b",
+  "bookmark": "#83313b"
+}

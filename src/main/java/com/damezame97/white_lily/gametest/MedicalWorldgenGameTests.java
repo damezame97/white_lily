@@ -39,7 +39,7 @@ public class MedicalWorldgenGameTests
                     .getHolderOrThrow(i==2?Biomes.FOREST:Biomes.PLAINS).value();
             long occurrences=biome.getGenerationSettings().features().stream().flatMap(set->set.stream())
                     .filter(holder->holder.unwrapKey().map(key->key.location().equals(infection_symptom_rules.id(herbName+"_patch"))).orElse(false)).count();
-            yes(h,occurrences==1,"已应用的群系装饰表只包含一次对应feature");
+            yes(h,occurrences==0,"自然生成暂停：群系装饰表不挂载药草feature");
             yes(h,herb_patch.target(new Random(0,0),config)==caps[i],"成功目标为范围上界");
             yes(h,herb_patch.target(new Random(probabilities[i],0),config)==0,"概率边界严格小于");
             Probe probe=new Probe(h,i);
@@ -50,6 +50,12 @@ public class MedicalWorldgenGameTests
             int count=probe.placed.size();
             yes(h,!place(h,probe,config)&&probe.placed.size()==count,"多群系或多步骤重复调用不得补种或突破上限");
         }
+        // 在全部已加载群系上检查自然生成入口，保留手动 Feature 放置用于测试和后续接入。
+        Set<String> pausedFeatures=Set.of("bitterleaf_patch","yarrow_patch","calming_flower_patch","hemp_patch");
+        for(var biome:h.getLevel().registryAccess().registryOrThrow(Registries.BIOME))
+            yes(h,biome.getGenerationSettings().features().stream().flatMap(set->set.stream())
+                    .noneMatch(holder->holder.unwrapKey().map(key->key.location().getNamespace().equals("white_lily")
+                            &&pausedFeatures.contains(key.location().getPath())).orElse(false)),"所有群系均不自然生成暂停的药草和野生麻");
         // 正负区块边界都使用 floorDiv；不是向零截断。
         yes(h,herb_patch.inside(new BlockPos(-16,64,-1),-16,-16),"负坐标区块内");
         yes(h,!herb_patch.inside(new BlockPos(0,64,-1),-16,-16),"负坐标上边界不跨区块");

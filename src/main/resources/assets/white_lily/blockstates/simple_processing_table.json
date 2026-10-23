@@ -1,0 +1,19 @@
+{
+  "variants": {
+    "facing=north": {
+      "model": "white_lily:block/simple_processing_table"
+    },
+    "facing=east": {
+      "model": "white_lily:block/simple_processing_table",
+      "y": 90
+    },
+    "facing=south": {
+      "model": "white_lily:block/simple_processing_table",
+      "y": 180
+    },
+    "facing=west": {
+      "model": "white_lily:block/simple_processing_table",
+      "y": 270
+    }
+  }
+}

@@ -1,0 +1,13 @@
+{
+  "categories": [
+    {"id":"white_lily:herbs_medical","title":"research.white_lily.category.herbs_medical","open":true,"chapters":[{"id":"white_lily:basic_herbs","title":"research.white_lily.chapter.basic_herbs"}]},
+    {"id":"white_lily:materials_processing","title":"research.white_lily.category.materials_processing","open":false,"chapters":[]},
+    {"id":"white_lily:pollution_anomalies","title":"research.white_lily.category.pollution_anomalies","open":false,"chapters":[]},
+    {"id":"white_lily:prescriptions","title":"research.white_lily.category.prescriptions","open":false,"chapters":[]},
+    {"id":"white_lily:curiosities","title":"research.white_lily.category.curiosities","open":false,"chapters":[]}
+  ],
+  "nodes": [
+    {"id":"white_lily:calming_flower","category":"white_lily:herbs_medical","chapter":"white_lily:basic_herbs","icon":"white_lily:calming_flower","name":"research.white_lily.node.calming_flower.name","intro":"research.white_lily.node.calming_flower.intro","hint":"research.white_lily.node.calming_flower.hint","x":0,"y":0,"prerequisites":[],"root_visible":true,"condition":"obtain","target":"white_lily:calming_flower","materials":[],"recipes":[],"archive":["research.white_lily.node.calming_flower.archive.1","research.white_lily.node.calming_flower.archive.2","research.white_lily.node.calming_flower.archive.3"]},
+    {"id":"white_lily:calming_flower_tea","category":"white_lily:herbs_medical","chapter":"white_lily:basic_herbs","icon":"white_lily:calming_flower_tea","name":"research.white_lily.node.calming_flower_tea.name","intro":"research.white_lily.node.calming_flower_tea.intro","hint":"research.white_lily.node.calming_flower_tea.hint","x":100,"y":0,"prerequisites":["white_lily:calming_flower"],"root_visible":false,"condition":"submit","materials":[{"item":"white_lily:calming_flower","count":1},{"item":"white_lily:blank_label","count":1}],"recipes":["white_lily:calming_flower_tea"],"archive":["research.white_lily.node.calming_flower_tea.archive.1","research.white_lily.node.calming_flower_tea.archive.2","research.white_lily.node.calming_flower_tea.archive.3"]}
+  ]
+}

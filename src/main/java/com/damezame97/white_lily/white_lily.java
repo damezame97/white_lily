@@ -60,6 +60,9 @@ public class white_lily
         com.damezame97.white_lily.worldgen.medical_worldgen.FEATURES.register(modEventBus);
         creative_tabs.CREATIVE_TABS.register(modEventBus);
         prescription_recipes.SERIALIZERS.register(modEventBus);
+        com.damezame97.white_lily.processing.processing_registry.TYPES.register(modEventBus);
+        com.damezame97.white_lily.processing.processing_registry.BLOCK_ENTITIES.register(modEventBus);
+        com.damezame97.white_lily.processing.processing_registry.MENUS.register(modEventBus);
 
         // 状态效果（white_lilybuff 包）。
         // 注意：伤害类型<b>不</b>在这里注册——它是数据包注册表（minecraft:damage_type），
@@ -76,6 +79,7 @@ public class white_lily
         context.registerConfig(ModConfig.Type.COMMON, Config.SPEC);
         context.registerConfig(ModConfig.Type.SERVER, Config.SERVER_SPEC);
         infection_network.register();
+        com.damezame97.white_lily.research.research_network.register();
     }
 
     private void commonSetup(final FMLCommonSetupEvent event)

@@ -1,5 +1,5 @@
 {
-  "type": "minecraft:crafting_shapeless",
+  "type": "white_lily:research_crafting",
   "ingredients": [
     {
       "item": "white_lily:simple_bandage"

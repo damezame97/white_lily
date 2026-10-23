@@ -13,14 +13,22 @@ import net.minecraft.world.level.Level;
 
 import java.util.List;
 
-/** 普通材料：64 堆叠，按住 Shift 展开三行双语介绍，不附加使用行为。 */
+/** 复用普通材料的 Shift 简介；可为工具额外列出客观使用提示。 */
 @ParametersAreNonnullByDefault
 @MethodsReturnNonnullByDefault
 public class basic_material_item extends Item
 {
+    private final int usageLines;
+
     public basic_material_item()
     {
-        super(new Item.Properties().stacksTo(64));
+        this(new Item.Properties().stacksTo(64), 0);
+    }
+
+    protected basic_material_item(Item.Properties properties, int usageLines)
+    {
+        super(properties);
+        this.usageLines = usageLines;
     }
 
     @Override
@@ -32,6 +40,11 @@ public class basic_material_item extends Item
 
     public void appendDescription(List<Component> tooltip, boolean expanded)
     {
+        appendDescription(tooltip, expanded, getDescriptionId(), usageLines);
+    }
+
+    public static void appendDescription(List<Component> tooltip, boolean expanded, String key, int usageLines)
+    {
         if (!expanded)
         {
             tooltip.add(detail_tooltip.hint());
@@ -39,8 +52,12 @@ public class basic_material_item extends Item
         }
         for (int line = 1; line <= 3; line++)
         {
-            tooltip.add(Component.translatable(getDescriptionId() + ".description." + line)
+            tooltip.add(Component.translatable(key + ".description." + line)
                     .withStyle(ChatFormatting.GRAY));
+        }
+        for (int line = 1; line <= usageLines; line++)
+        {
+            tooltip.add(Component.translatable(key + ".usage." + line).withStyle(ChatFormatting.GRAY));
         }
     }
 }

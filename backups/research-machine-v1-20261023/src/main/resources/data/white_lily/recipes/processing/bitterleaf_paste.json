@@ -1,0 +1,9 @@
+{
+  "type": "white_lily:simple_processing",
+  "tool": { "item": "white_lily:stone_mortar" },
+  "tool_damage": 1,
+  "ingredients": [ { "ingredient": { "item": "white_lily:bitterleaf" }, "count": 3 } ],
+  "result": { "item": "white_lily:bitterleaf_paste", "count": 2 },
+  "byproduct": { "item": "white_lily:herbal_residue", "count": 1 },
+  "processing_time": 100
+}

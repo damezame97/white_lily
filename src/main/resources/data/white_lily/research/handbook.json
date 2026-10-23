@@ -1,0 +1,298 @@
+{
+  "categories": [
+    {
+      "id": "white_lily:herbs_medical",
+      "title": "research.white_lily.category.herbs_medical",
+      "open": true,
+      "chapters": [
+        {
+          "id": "white_lily:basic_herbs",
+          "title": "research.white_lily.chapter.basic_herbs"
+        },
+        {
+          "id": "white_lily:bandages",
+          "title": "research.white_lily.chapter.bandages"
+        }
+      ]
+    },
+    {
+      "id": "white_lily:materials_processing",
+      "title": "research.white_lily.category.materials_processing",
+      "open": false,
+      "chapters": []
+    },
+    {
+      "id": "white_lily:pollution_anomalies",
+      "title": "research.white_lily.category.pollution_anomalies",
+      "open": false,
+      "chapters": []
+    },
+    {
+      "id": "white_lily:prescriptions",
+      "title": "research.white_lily.category.prescriptions",
+      "open": false,
+      "chapters": []
+    },
+    {
+      "id": "white_lily:curiosities",
+      "title": "research.white_lily.category.curiosities",
+      "open": false,
+      "chapters": []
+    }
+  ],
+  "nodes": [
+    {
+      "id": "white_lily:bitterleaf",
+      "category": "white_lily:herbs_medical",
+      "chapter": "white_lily:basic_herbs",
+      "icon": "white_lily:bitterleaf",
+      "name": "research.white_lily.node.bitterleaf.name",
+      "intro": "research.white_lily.node.bitterleaf.intro",
+      "hint": "research.white_lily.node.bitterleaf.hint",
+      "x": 0,
+      "y": -52,
+      "prerequisites": [],
+      "root_visible": true,
+      "condition": "obtain",
+      "materials": [],
+      "recipes": [],
+      "archive": [
+        "research.white_lily.node.bitterleaf.archive.1"
+      ],
+      "target": "white_lily:bitterleaf"
+    },
+    {
+      "id": "white_lily:bitterleaf_paste",
+      "category": "white_lily:herbs_medical",
+      "chapter": "white_lily:basic_herbs",
+      "icon": "white_lily:bitterleaf_paste",
+      "name": "research.white_lily.node.bitterleaf_paste.name",
+      "intro": "research.white_lily.node.bitterleaf_paste.intro",
+      "hint": "research.white_lily.node.bitterleaf_paste.hint",
+      "x": 112,
+      "y": -52,
+      "prerequisites": [
+        "white_lily:bitterleaf"
+      ],
+      "root_visible": false,
+      "condition": "submit",
+      "materials": [
+        {
+          "item": "white_lily:bitterleaf",
+          "count": 1
+        },
+        {
+          "item": "white_lily:blank_label",
+          "count": 1
+        }
+      ],
+      "recipes": [
+        "white_lily:processing/bitterleaf_paste"
+      ],
+      "archive": [
+        "research.white_lily.node.bitterleaf_paste.archive.1"
+      ]
+    },
+    {
+      "id": "white_lily:yarrow",
+      "category": "white_lily:herbs_medical",
+      "chapter": "white_lily:basic_herbs",
+      "icon": "white_lily:yarrow",
+      "name": "research.white_lily.node.yarrow.name",
+      "intro": "research.white_lily.node.yarrow.intro",
+      "hint": "research.white_lily.node.yarrow.hint",
+      "x": 0,
+      "y": 0,
+      "prerequisites": [],
+      "root_visible": true,
+      "condition": "obtain",
+      "materials": [],
+      "recipes": [],
+      "archive": [
+        "research.white_lily.node.yarrow.archive.1"
+      ],
+      "target": "white_lily:yarrow"
+    },
+    {
+      "id": "white_lily:yarrow_dressing",
+      "category": "white_lily:herbs_medical",
+      "chapter": "white_lily:basic_herbs",
+      "icon": "white_lily:yarrow_dressing",
+      "name": "research.white_lily.node.yarrow_dressing.name",
+      "intro": "research.white_lily.node.yarrow_dressing.intro",
+      "hint": "research.white_lily.node.yarrow_dressing.hint",
+      "x": 112,
+      "y": 0,
+      "prerequisites": [
+        "white_lily:yarrow"
+      ],
+      "root_visible": false,
+      "condition": "submit",
+      "materials": [
+        {
+          "item": "white_lily:yarrow",
+          "count": 1
+        },
+        {
+          "item": "white_lily:blank_label",
+          "count": 1
+        }
+      ],
+      "recipes": [
+        "white_lily:processing/yarrow_dressing"
+      ],
+      "archive": [
+        "research.white_lily.node.yarrow_dressing.archive.1"
+      ]
+    },
+    {
+      "id": "white_lily:calming_flower",
+      "category": "white_lily:herbs_medical",
+      "chapter": "white_lily:basic_herbs",
+      "icon": "white_lily:calming_flower",
+      "name": "research.white_lily.node.calming_flower.name",
+      "intro": "research.white_lily.node.calming_flower.intro",
+      "hint": "research.white_lily.node.calming_flower.hint",
+      "x": 0,
+      "y": 52,
+      "prerequisites": [],
+      "root_visible": true,
+      "condition": "obtain",
+      "target": "white_lily:calming_flower",
+      "materials": [],
+      "recipes": [],
+      "archive": [
+        "research.white_lily.node.calming_flower.archive.1",
+        "research.white_lily.node.calming_flower.archive.2",
+        "research.white_lily.node.calming_flower.archive.3"
+      ]
+    },
+    {
+      "id": "white_lily:calming_flower_tea",
+      "category": "white_lily:herbs_medical",
+      "chapter": "white_lily:basic_herbs",
+      "icon": "white_lily:calming_flower_tea",
+      "name": "research.white_lily.node.calming_flower_tea.name",
+      "intro": "research.white_lily.node.calming_flower_tea.intro",
+      "hint": "research.white_lily.node.calming_flower_tea.hint",
+      "x": 112,
+      "y": 52,
+      "prerequisites": [
+        "white_lily:calming_flower"
+      ],
+      "root_visible": false,
+      "condition": "submit",
+      "materials": [
+        {
+          "item": "white_lily:calming_flower",
+          "count": 1
+        },
+        {
+          "item": "white_lily:blank_label",
+          "count": 1
+        }
+      ],
+      "recipes": [
+        "white_lily:calming_flower_tea"
+      ],
+      "archive": [
+        "research.white_lily.node.calming_flower_tea.archive.1",
+        "research.white_lily.node.calming_flower_tea.archive.2",
+        "research.white_lily.node.calming_flower_tea.archive.3"
+      ]
+    },
+    {
+      "id": "white_lily:coarse_cloth",
+      "category": "white_lily:herbs_medical",
+      "chapter": "white_lily:bandages",
+      "icon": "white_lily:coarse_cloth",
+      "name": "research.white_lily.node.coarse_cloth.name",
+      "intro": "research.white_lily.node.coarse_cloth.intro",
+      "hint": "research.white_lily.node.coarse_cloth.hint",
+      "x": 0,
+      "y": 0,
+      "prerequisites": [],
+      "root_visible": true,
+      "condition": "obtain",
+      "materials": [],
+      "recipes": [],
+      "archive": [
+        "research.white_lily.node.coarse_cloth.archive.1"
+      ],
+      "target": "white_lily:coarse_cloth"
+    },
+    {
+      "id": "white_lily:simple_bandage",
+      "category": "white_lily:herbs_medical",
+      "chapter": "white_lily:bandages",
+      "icon": "white_lily:simple_bandage",
+      "name": "research.white_lily.node.simple_bandage.name",
+      "intro": "research.white_lily.node.simple_bandage.intro",
+      "hint": "research.white_lily.node.simple_bandage.hint",
+      "x": 112,
+      "y": 0,
+      "prerequisites": [
+        "white_lily:coarse_cloth"
+      ],
+      "root_visible": false,
+      "condition": "submit",
+      "materials": [
+        {
+          "item": "white_lily:coarse_cloth",
+          "count": 1
+        },
+        {
+          "item": "white_lily:thin_cloth_strip",
+          "count": 1
+        }
+      ],
+      "recipes": [
+        "white_lily:simple_bandage"
+      ],
+      "archive": [
+        "research.white_lily.node.simple_bandage.archive.1"
+      ]
+    },
+    {
+      "id": "white_lily:clean_fine_bandage",
+      "category": "white_lily:herbs_medical",
+      "chapter": "white_lily:bandages",
+      "icon": "white_lily:clean_fine_bandage",
+      "name": "research.white_lily.node.clean_fine_bandage.name",
+      "intro": "research.white_lily.node.clean_fine_bandage.intro",
+      "hint": "research.white_lily.node.clean_fine_bandage.hint",
+      "x": 224,
+      "y": 0,
+      "prerequisites": [
+        "white_lily:simple_bandage",
+        "white_lily:yarrow_dressing"
+      ],
+      "root_visible": false,
+      "condition": "submit",
+      "materials": [
+        {
+          "item": "white_lily:simple_bandage",
+          "count": 1
+        },
+        {
+          "item": "white_lily:yarrow_dressing",
+          "count": 1
+        },
+        {
+          "item": "white_lily:blank_label",
+          "count": 1
+        }
+      ],
+      "recipes": [
+        "white_lily:clean_fine_bandage_beeswax",
+        "white_lily:clean_fine_bandage_honey"
+      ],
+      "archive": [
+        "research.white_lily.node.clean_fine_bandage.archive.1"
+      ],
+      "reveal_after": [
+        "white_lily:simple_bandage"
+      ]
+    }
+  ]
+}

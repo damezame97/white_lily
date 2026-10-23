@@ -210,6 +210,7 @@ public class MedicalGameTests
     public static void recipesStrictWaterAndHoneyBatchRemainders(GameTestHelper h)
     {
         Menu honey=new Menu(player(h));
+        com.damezame97.white_lily.research.research_capability.get(honey.player).orElseThrow().complete(infection_symptom_rules.id("clean_fine_bandage"));
         honey.getSlot(1).set(new ItemStack(items.SIMPLE_BANDAGE.get(),4));
         honey.getSlot(2).set(new ItemStack(items.YARROW_DRESSING.get(),4));
         honey.getSlot(3).set(new ItemStack(Items.HONEY_BOTTLE,4));
@@ -217,12 +218,16 @@ public class MedicalGameTests
         yes(h,honey.player.getInventory().countItem(items.CLEAN_FINE_BANDAGE.get())==4,"Shift批量产出4精良绷带");
         yes(h,count(honey,Items.GLASS_BOTTLE)==4,"每瓶蜂蜜返一个瓶子");
         Menu wax=new Menu(player(h));
+        com.damezame97.white_lily.research.research_capability.get(wax.player).orElseThrow().complete(infection_symptom_rules.id("clean_fine_bandage"));
         wax.getSlot(1).set(new ItemStack(items.SIMPLE_BANDAGE.get()));
         wax.getSlot(2).set(new ItemStack(items.YARROW_DRESSING.get()));
         wax.getSlot(3).set(new ItemStack(items.BEESWAX_BLOCK.get()));
         wax.clicked(0,0,ClickType.PICKUP,wax.player);
         yes(h,wax.getCarried().is(items.CLEAN_FINE_BANDAGE.get())&&count(wax,Items.GLASS_BOTTLE)==0,"蜂蜡路线不返瓶");
         Menu tea=new Menu(player(h));
+        // 本测试验证已有茶配方的水瓶和返瓶规则；研究权限由专门的真实菜单回归覆盖。
+        com.damezame97.white_lily.research.research_capability.get(tea.player).orElseThrow()
+                .complete(infection_symptom_rules.id("calming_flower_tea"));
         tea.getSlot(1).set(new ItemStack(items.CALMING_FLOWER.get(),2));
         tea.getSlot(2).set(new ItemStack(items.CALMING_FLOWER.get(),2));
         ItemStack[] invalid={PotionUtils.setPotion(new ItemStack(Items.POTION),Potions.AWKWARD),
@@ -234,8 +239,11 @@ public class MedicalGameTests
         tea.getSlot(3).set(PotionUtils.setPotion(new ItemStack(Items.POTION,2),Potions.WATER));
         tea.clicked(0,0,ClickType.QUICK_MOVE,tea.player);
         yes(h,tea.player.getInventory().countItem(items.CALMING_FLOWER_TEA.get())==2&&count(tea,Items.GLASS_BOTTLE)==0,"批量茶合成不返空瓶");
-        for(String id:new String[]{"simple_bandage","bitterleaf_paste","yarrow_dressing","clean_fine_bandage_honey","clean_fine_bandage_beeswax","calming_flower_tea"})
+        for(String id:new String[]{"simple_bandage","clean_fine_bandage_honey","clean_fine_bandage_beeswax","calming_flower_tea",
+                "processing/hemp_fiber","processing/bitterleaf_paste","processing/yarrow_dressing"})
             yes(h,h.getLevel().getRecipeManager().byKey(infection_symptom_rules.id(id)).isPresent(),"已加载配方："+id);
+        for(String id:new String[]{"bitterleaf_paste","yarrow_dressing"})
+            yes(h,h.getLevel().getRecipeManager().byKey(infection_symptom_rules.id(id)).isEmpty(),"药膏和敷料已移出普通合成："+id);
         h.succeed();
     }
 

@@ -210,7 +210,7 @@ public final class stored_suffering_events
     /** 复用原版 action bar 数据包，仅发给本人：总额变化即更新，未变化每 30 刻续显一次。 */
     public static void sync(Player player, suffering_data data, boolean force)
     {
-        if (!(player instanceof ServerPlayer serverPlayer))
+        if (!(player instanceof ServerPlayer serverPlayer) || serverPlayer.connection == null)
         {
             return;
         }

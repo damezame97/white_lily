@@ -12,5 +12,6 @@ public final class medical_blocks
     public static final RegistryObject<Block> CALMING_FLOWER = BLOCKS.register("calming_flower", () -> new herb_block(false));
     public static final RegistryObject<Block> HEMP_CROP = BLOCKS.register("hemp_crop", hemp_crop::new);
     public static final RegistryObject<Block> WILD_HEMP = BLOCKS.register("wild_hemp", wild_hemp::new);
+    public static final RegistryObject<Block> SIMPLE_PROCESSING_TABLE = BLOCKS.register("simple_processing_table", simple_processing_table::new);
     private medical_blocks() { }
 }

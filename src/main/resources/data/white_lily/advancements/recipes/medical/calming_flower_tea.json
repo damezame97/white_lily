@@ -1,27 +1,12 @@
 {
-  "rewards": {
-    "recipes": [
-      "white_lily:calming_flower_tea"
-    ]
-  },
+  "parent": "minecraft:recipes/root",
   "criteria": {
-    "has_material": {
-      "trigger": "minecraft:inventory_changed",
-      "conditions": {
-        "items": [
-          {
-            "items": [
-              "white_lily:calming_flower"
-            ]
-          }
-        ]
-      }
+    "research_required": {
+      "trigger": "minecraft:impossible"
     }
   },
-  "requirements": [
-    [
-      "has_material"
-    ]
-  ],
-  "parent": "minecraft:recipes/root"
+  "requirements": [["research_required"]],
+  "rewards": {
+    "recipes": ["white_lily:calming_flower_tea"]
+  }
 }
