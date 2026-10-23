@@ -113,7 +113,7 @@ public class MedicalLifecycleGameTests
         items.CLEANSING_CHIP_MEDIUM.get().use(p.level(),p,InteractionHand.MAIN_HAND);
         near(h,270,infection_service.query(p),"洁净片直接减30");
         yes(h,!p.hasEffect(mob_effects.RECOVERY_FATIGUE.get())&&state(p).poolCooldown==0,"不当作治疗或随机感染事件");
-        yes(h,p.hasEffect(mob_effects.DELAYED_HEALING.get()),"固定症状立即重评");
+        yes(h,!p.hasEffect(mob_effects.DELAYED_HEALING.get()),"愈合迟滞不再随感染值自动发放");
         ToolPlayer denied=new ToolPlayer(h,false);
         denied.setItemInHand(InteractionHand.MAIN_HAND,new ItemStack(items.POLLUTION_CHIP_LARGE.get(),3));
         items.POLLUTION_CHIP_LARGE.get().use(denied.level(),denied,InteractionHand.MAIN_HAND);

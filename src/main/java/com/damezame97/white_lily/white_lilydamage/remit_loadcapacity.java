@@ -22,6 +22,7 @@ import java.util.List;
  * <ul>
  *     <li>{@link load_burden} —— 载重反噬本身（不套娃）；</li>
  *     <li>{@link mental_injury} —— 精神损伤（崩溃状态下从主伤害里切出来的那一份）。</li>
+ *     <li>{@link excessive_hemorrhage} —— 大出血（自己流出来的伤害不能再触发一轮追罚）。</li>
  * </ul>
  *
  * <p>数据文件：{@code data/white_lily/tags/damage_type/remit_loadcapacity.json}。</p>
@@ -38,7 +39,8 @@ public final class remit_loadcapacity
     /** 这个标签里的成员（与 json 里的 values 一一对应，GameTest 会逐个断言）。 */
     public static final List<ResourceKey<DamageType>> MEMBERS = List.of(
             load_burden.KEY,
-            mental_injury.KEY);
+            mental_injury.KEY,
+            excessive_hemorrhage.KEY);
 
     private remit_loadcapacity()
     {

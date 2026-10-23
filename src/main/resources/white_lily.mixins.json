@@ -19,11 +19,23 @@
     "research.MixinResearchResultPickup",
     "research.MixinResearchQuickMove",
     "research.MixinResearchRecipeBook",
-    "research.MixinResearchRecipePlacement"
+    "research.MixinResearchRecipePlacement",
+    "recipebook.MixinMenuRecipeGate",
+    "recipebook.MixinCraftingPreviewGate",
+    "recipebook.MixinVanillaQuickMoveGate",
+    "recipebook.MixinGunSmithRecipeGate",
+    "recipebook.MixinIronSpellMenuGate",
+    "recipebook.MixinEnchantmentGate",
+    "recipebook.MixinFurnaceRecipeGate",
+    "recipebook.MixinBrewingRecipeGate",
+    "recipebook.MixinVineryBarrelGate",
+    "recipebook.MixinVineryPressGate",
+    "recipebook.MixinInscriptionCommitGate"
   ],
   "client": [
     "client.MixinTitleScreen",
-    "client.MixinInfectionBlindness"
+    "client.MixinInfectionBlindness",
+    "client.MixinRecipeBrowserContainer"
   ],
   "injectors": {
     "defaultRequire": 1

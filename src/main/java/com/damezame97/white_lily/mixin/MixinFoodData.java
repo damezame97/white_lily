@@ -120,7 +120,15 @@ public abstract class MixinFoodData
         }
         this.tickTimer = 0;
 
-        whiteLily$applyHealth(player, health);
+        // 「愈合迟滞」：先掷骰（获得/升级），再按等级缩放「正回复量」。
+        com.damezame97.white_lily.infection.infection_symptom_rules.onDelayedHealAction(player, player.getRandom());
+        float scaled = health;
+        if (health > 0.0F)
+        {
+            scaled = (float) (health * com.damezame97.white_lily.infection.infection_symptom_rules.healMultiplier(player));
+        }
+
+        whiteLily$applyHealth(player, scaled);
 
         if (hungerOnly)
         {

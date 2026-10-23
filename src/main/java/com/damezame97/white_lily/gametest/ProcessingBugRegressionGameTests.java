@@ -22,29 +22,33 @@ public final class ProcessingBugRegressionGameTests
     @GameTest(template = "empty")
     public static void restoredProgressCannotSurviveRemovingRequiredInputsBeforeFirstTick(GameTestHelper h)
     {
-        BlockPos relative = new BlockPos(1, 2, 1);
-        h.setBlock(relative, medical_blocks.SIMPLE_PROCESSING_TABLE.get());
-        processing_block_entity original = (processing_block_entity) h.getBlockEntity(relative);
-        original.getInventory().setStackInSlot(0, new ItemStack(items.STONE_MORTAR.get()));
-        original.getInventory().setStackInSlot(1, new ItemStack(items.HEMP_STALK.get(), 2));
-        for (int tick = 0; tick < 17; tick++) tick(original);
-        CompoundTag saved = original.saveWithFullMetadata();
+        try (ProcessingTestPlayers scope = new ProcessingTestPlayers(h))
+        {
+            BlockPos relative = new BlockPos(1, 2, 1);
+            h.setBlock(relative, medical_blocks.SIMPLE_PROCESSING_TABLE.get());
+            processing_block_entity original = (processing_block_entity) h.getBlockEntity(relative);
+            original.authorizeInput(ProcessingTestPlayers.create(h));
+            original.getInventory().setStackInSlot(0, new ItemStack(items.STONE_MORTAR.get()));
+            original.getInventory().setStackInSlot(1, new ItemStack(items.HEMP_STALK.get(), 2));
+            for (int tick = 0; tick < 17; tick++) tick(original);
+            CompoundTag saved = original.saveWithFullMetadata();
 
-        processing_block_entity restored = restore(original, saved);
-        ItemStack removed = restored.getInventory().extractItem(1, 2, false);
-        yes(h, removed.getCount() == 2 && restored.getData().get(0) == 0,
-                "加载后首刻前取走必要原料，也必须立即清空17刻进度");
-        restored.getInventory().setStackInSlot(1, removed);
-        tick(restored);
-        yes(h, restored.getData().get(0) == 1 && restored.getInventory().getStackInSlot(5).isEmpty(),
-                "同刻放回原料只能重新开始，不能恢复旧进度");
+            processing_block_entity restored = restore(original, saved);
+            ItemStack removed = restored.getInventory().extractItem(1, 2, false);
+            yes(h, removed.getCount() == 2 && restored.getData().get(0) == 0,
+                    "加载后首刻前取走必要原料，也必须立即清空17刻进度");
+            restored.getInventory().setStackInSlot(1, removed);
+            tick(restored);
+            yes(h, restored.getData().get(0) == 1 && restored.getInventory().getStackInSlot(5).isEmpty(),
+                    "同刻放回原料只能重新开始，不能恢复旧进度");
 
-        processing_block_entity addition = restore(original, saved);
-        addition.getInventory().setStackInSlot(1, new ItemStack(items.HEMP_STALK.get(), 5));
-        yes(h, addition.getData().get(0) == 17, "加载后增加同种有效原料仍保留原有进度");
-        tick(addition);
-        yes(h, addition.getData().get(0) == 18, "有效原料增加后从已保存的进度继续");
-        h.succeed();
+            processing_block_entity addition = restore(original, saved);
+            addition.getInventory().setStackInSlot(1, new ItemStack(items.HEMP_STALK.get(), 5));
+            yes(h, addition.getData().get(0) == 17, "加载后增加同种有效原料仍保留原有进度");
+            tick(addition);
+            yes(h, addition.getData().get(0) == 18, "有效原料增加后从已保存的进度继续");
+            h.succeed();
+        }
     }
 
     private static processing_block_entity restore(processing_block_entity original, CompoundTag saved)

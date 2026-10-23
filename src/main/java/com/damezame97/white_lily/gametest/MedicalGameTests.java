@@ -7,6 +7,7 @@ import com.damezame97.white_lily.procedures.san_procedures;
 import com.damezame97.white_lily.white_lilybuff.mob_effects;
 import net.minecraft.gametest.framework.*;
 import net.minecraft.world.InteractionHand;
+import net.minecraft.world.effect.MobEffectInstance;
 import net.minecraft.world.effect.MobEffects;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.inventory.*;
@@ -58,7 +59,7 @@ public class MedicalGameTests
     }
 
     @GameTest(template = "empty")
-    public static void bandageDurationTierRefreshAndInterruptedUse(GameTestHelper h)
+    public static void bandageUseInterruptionAndNoIntervalBonus(GameTestHelper h)
     {
         Player p=player(h);
         ItemStack simple=new ItemStack(items.SIMPLE_BANDAGE.get(),3);
@@ -69,21 +70,76 @@ public class MedicalGameTests
         yes(h,simple.getCount()==3 && !p.hasEffect(mob_effects.BANDAGED.get()),"中断不消耗、不包扎");
         near(h,0,infection_service.query(p),"中断不判污染");
         yes(h,simple.getUseDuration()==60 && items.CLEAN_FINE_BANDAGE.get().getDefaultInstance().getUseDuration()==60,"3秒使用");
+        // 包扎不再给恢复间隔加成：效果在也在、不在也不该动属性。
         medical_actions.apply(p,medical_actions.Kind.SIMPLE,new Rolls(0.9,0.9));
-        near(h,30,p.getAttributeValue(attributes.RECOVERY_INTERVAL.get()),"Ⅰ为30");
-        yes(h,p.getEffect(mob_effects.BANDAGED.get()).getDuration()==6000,"Ⅰ持续6000");
-        medical_actions.apply(p,medical_actions.Kind.SIMPLE,new Rolls(0.9,0.9));
-        near(h,30,p.getAttributeValue(attributes.RECOVERY_INTERVAL.get()),"同级不叠属性");
+        near(h,0,p.getAttributeValue(attributes.RECOVERY_INTERVAL.get()),"包扎不再加恢复间隔");
+        yes(h,p.getEffect(mob_effects.BANDAGED.get()).getDuration()==6000,"Ⅰ仍是5分钟标记");
         ItemStack fine=new ItemStack(items.CLEAN_FINE_BANDAGE.get(),2);
         fine.getItem().finishUsingItem(fine,p.level(),p);
         yes(h,fine.getCount()==1 && p.getEffect(mob_effects.BANDAGED.get()).getAmplifier()==1,"高级替换并消耗1");
-        yes(h,p.getEffect(mob_effects.BANDAGED.get()).getDuration()==12000,"Ⅱ持续12000");
-        near(h,60,p.getAttributeValue(attributes.RECOVERY_INTERVAL.get()),"Ⅱ明确为60");
-        yes(h,!medical_actions.canUse(p,medical_actions.Kind.SIMPLE),"使用前阻止低级覆盖高级");
-        yes(h,!items.SIMPLE_BANDAGE.get().use(p.level(),p,InteractionHand.MAIN_HAND).getResult().consumesAction(),"无效使用不开始");
-        simple.getItem().finishUsingItem(simple,p.level(),p);
-        yes(h,simple.getCount()==3 && p.getEffect(mob_effects.BANDAGED.get()).getDuration()==12000,"完成时再次校验，不消耗不延长");
-        near(h,0,infection_service.query(p),"低级无效不判污染");
+        near(h,0,p.getAttributeValue(attributes.RECOVERY_INTERVAL.get()),"Ⅱ也不再加间隔");
+        h.succeed();
+    }
+
+    /** 包扎与渗血的等级差换算：同级 1000，每低一级除 2，每高一级乘 2。 */
+    @GameTest(template = "empty")
+    public static void bandagedDeductionScalesWithLevelGap(GameTestHelper h)
+    {
+        near(h,1000,infection_symptom_rules.bandagedDeduction(0,0),"同级1000");
+        near(h,500,infection_symptom_rules.bandagedDeduction(0,1),"低一级除2");
+        near(h,250,infection_symptom_rules.bandagedDeduction(0,2),"低两级除2再除2");
+        near(h,2000,infection_symptom_rules.bandagedDeduction(1,0),"高一级乘2");
+        near(h,4000,infection_symptom_rules.bandagedDeduction(2,0),"高两级乘2再乘2");
+        near(h,4000,infection_symptom_rules.bandagedDeduction(3,1),"包扎高两级时乘4");
+        h.succeed();
+    }
+
+    /** 包扎对渗血生效：先按等级扣时长，再移除自己，并给 1 级 180 秒 delayed_healing。 */
+    @GameTest(template = "empty")
+    public static void bandagedCutsSeepageThenGrantsDelayedHealing(GameTestHelper h)
+    {
+        Player p=player(h);
+        infection_service.set(p,50);
+        infection_symptom_rules.start(p,"wound_seepage",4000,2);
+        infection_symptom_rules.reevaluate(p);
+        MobEffectInstance bandage=new MobEffectInstance(mob_effects.BANDAGED.get(),6000,0,false,false,true);
+        p.addEffect(bandage);
+        int deduction=infection_symptom_rules.resolveBandaged(p,0);
+        near(h,250,deduction,"0级包扎对2级渗血只扣250");
+        yes(h,state(p).remaining("wound_seepage")==3750,"渗血时长4000-250");
+        yes(h,!p.hasEffect(mob_effects.BANDAGED.get()),"包扎立即移除自身");
+        MobEffectInstance heal=p.getEffect(mob_effects.DELAYED_HEALING.get());
+        yes(h,heal!=null && heal.getAmplifier()==1 && heal.getDuration()==3600,"获得1级180秒延时治愈");
+        // 下一次重评不能把这条 granted 效果冲掉。
+        infection_symptom_rules.reevaluate(p);
+        heal=p.getEffect(mob_effects.DELAYED_HEALING.get());
+        yes(h,heal!=null && heal.getAmplifier()==1,"重评后仍保留1级");
+        h.succeed();
+    }
+
+    /** 时长不够就直接结束渗血；没有渗血时只移除自己、不给延时治愈。 */
+    @GameTest(template = "empty")
+    public static void bandagedRemovesShortSeepageAndSkipsHealWithoutWound(GameTestHelper h)
+    {
+        Player p=player(h);
+        infection_service.set(p,50);
+        infection_symptom_rules.start(p,"wound_seepage",500,0);
+        infection_symptom_rules.reevaluate(p);
+        p.addEffect(new MobEffectInstance(mob_effects.BANDAGED.get(),6000,0,false,false,true));
+        int deduction=infection_symptom_rules.resolveBandaged(p,0);
+        near(h,1000,deduction,"同级扣1000");
+        yes(h,!has(p,"wound_seepage"),"剩余不足扣除量时直接移除渗血");
+        yes(h,!p.hasEffect(mob_effects.BANDAGED.get()),"包扎仍会移除自身");
+        yes(h,p.getEffect(mob_effects.DELAYED_HEALING.get())!=null,"对渗血生效过就给延时治愈");
+        // 没有渗血：只移除自己。
+        infection_service.set(p,10);
+        p.removeEffect(mob_effects.DELAYED_HEALING.get());
+        infection_symptom_rules.reevaluate(p);
+        yes(h,!has(p,"delayed_healing"),"前置：已清掉迟滞治愈");
+        p.addEffect(new MobEffectInstance(mob_effects.BANDAGED.get(),6000,1,false,false,true));
+        near(h,0,infection_symptom_rules.resolveBandaged(p,1),"没有渗血不产生扣除");
+        yes(h,!p.hasEffect(mob_effects.BANDAGED.get()),"没有渗血也立即移除自身");
+        yes(h,p.getEffect(mob_effects.DELAYED_HEALING.get())==null,"没有渗血不给延时治愈");
         h.succeed();
     }
 
@@ -119,21 +175,22 @@ public class MedicalGameTests
         Player p=player(h);
         infection_service.set(p,50);
         infection_symptom_rules.onDirectHit(p,3);
-        near(h,-40,p.getAttributeValue(attributes.RECOVERY_INTERVAL.get()),"迟滞与渗血");
+        near(h,-30,p.getAttributeValue(attributes.RECOVERY_INTERVAL.get()),"0级渗血的间隔惩罚");
+        near(h,1,p.getAttributeValue(attributes.RESTORE_HEALTH.get()),"0级渗血不扣回复量");
         medical_actions.apply(p,medical_actions.Kind.YARROW,p.getRandom());
-        yes(h,state(p).remaining("wound_seepage")==600 && p.hasEffect(mob_effects.WOUND_SEEPAGE.get()),"渗血本体仍在");
-        near(h,-20,p.getAttributeValue(attributes.RECOVERY_INTERVAL.get()),"只抑制渗血间隔");
+        yes(h,state(p).remaining("wound_seepage")==1200 && p.hasEffect(mob_effects.WOUND_SEEPAGE.get()),"渗血本体仍在");
+        near(h,0,p.getAttributeValue(attributes.RECOVERY_INTERVAL.get()),"抑制后不再有渗血间隔惩罚");
         near(h,1,p.getAttributeValue(attributes.RESTORE_HEALTH.get()),"只抑制渗血回复量");
         infection_symptom_rules.tick(p,0);
-        yes(h,state(p).remaining("wound_seepage")==599,"渗血持续时间继续流逝");
+        yes(h,state(p).remaining("wound_seepage")==1199,"渗血持续时间继续流逝");
         infection_symptom_rules.onDirectHit(p,3);
-        yes(h,state(p).remaining("wound_seepage")==799,"抑制期间受击仍可延长渗血");
+        yes(h,state(p).remaining("wound_seepage")==1599,"抑制期间受击仍可延长渗血");
         medical_actions.apply(p,medical_actions.Kind.DRESSING,p.getRandom());
         medical_actions.apply(p,medical_actions.Kind.YARROW,p.getRandom());
         yes(h,p.getEffect(mob_effects.WOUND_SUPPRESSION.get()).getDuration()==1200,"保留更长抑制");
         p.removeEffect(mob_effects.WOUND_SUPPRESSION.get());
         infection_symptoms.reevaluate(p);
-        near(h,-40,p.getAttributeValue(attributes.RECOVERY_INTERVAL.get()),"抑制结束恢复仍在的渗血惩罚");
+        near(h,-30,p.getAttributeValue(attributes.RECOVERY_INTERVAL.get()),"抑制结束恢复仍在的渗血惩罚");
         infection_service.set(p,29.9);
         medical_actions.apply(p,medical_actions.Kind.DRESSING,p.getRandom());
         p.removeEffect(mob_effects.WOUND_SUPPRESSION.get());
@@ -154,11 +211,12 @@ public class MedicalGameTests
             attr(p,attributes.RECOVERY_INTERVAL.get()).setBaseValue(100);
             var food=p.getFoodData();food.setFoodLevel(20);food.setSaturation(10);
             for(int i=0;i<200;i++)food.tick(p);
+            // 包扎不再改恢复间隔，所以间隔保持 180-100=80 秒（1600 刻）。
             medical_actions.apply(p,medical_actions.Kind.SIMPLE,new Rolls(0.9,0.9));
-            for(int i=0;i<799;i++)food.tick(p);
-            near(h,10,p.getHealth(),"包扎后累计999刻不提前恢复");
+            for(int i=0;i<1399;i++)food.tick(p);
+            near(h,10,p.getHealth(),"包扎后累计1599刻不提前恢复");
             food.tick(p);
-            near(h,11,p.getHealth(),"累计1000刻恢复，未丢失包扎前200刻");
+            near(h,11,p.getHealth(),"累计1600刻恢复，未丢失包扎前200刻");
             attr(p,attributes.RECOVERY_INTERVAL.get()).setBaseValue(200);
             near(h,100,com.damezame97.white_lily.gamerule.happy_mode_food.intervalTicks(
                     p.getAttributeValue(attributes.RECOVERY_INTERVAL.get()),false),"仍遵守5秒下限");
@@ -262,6 +320,7 @@ public class MedicalGameTests
     static net.minecraft.world.entity.ai.attributes.AttributeInstance attr(Player p,net.minecraft.world.entity.ai.attributes.Attribute a)
     {return Objects.requireNonNull(p.getAttribute(a));}
     static infection_symptom_state state(Player p){return infection_symptom_rules.state(p);}
+    static boolean has(Player p,String name){return infection_symptom_rules.has(p,name);}
     static void yes(GameTestHelper h,boolean v,String message){h.assertTrue(v,message);}
     static void near(GameTestHelper h,double expected,double actual,String message){yes(h,Math.abs(expected-actual)<0.00001,message+": "+expected+" != "+actual);}
     static final class Rolls extends LegacyRandomSource

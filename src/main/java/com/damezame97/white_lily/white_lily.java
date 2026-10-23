@@ -80,11 +80,12 @@ public class white_lily
         context.registerConfig(ModConfig.Type.SERVER, Config.SERVER_SPEC);
         infection_network.register();
         com.damezame97.white_lily.research.research_network.register();
+        com.damezame97.white_lily.recipebook.recipe_unlocks.register();
     }
 
     private void commonSetup(final FMLCommonSetupEvent event)
     {
-        event.enqueueWork(() -> ((com.damezame97.white_lily.white_lilybuff.bandaged) mob_effects.BANDAGED.get()).bindAttributes());
+        // 包扎不再挂属性修饰符（恢复间隔加成已移除），这里不需要额外的 commonSetup 注册。
         if (Config.debugLogging)
         {
             LOGGER.info("White Lily: 已注册 {} 个自定义属性", attributes.ALL.size());

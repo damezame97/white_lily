@@ -2,6 +2,7 @@ package com.damezame97.white_lily.mixin.research;
 
 import com.damezame97.white_lily.crafting.research_crafting_recipe;
 import com.damezame97.white_lily.research.research_crafting_gate;
+import com.damezame97.white_lily.recipebook.recipe_unlocks;
 import net.minecraft.recipebook.ServerPlaceRecipe;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.player.StackedContents;
@@ -26,7 +27,7 @@ public abstract class MixinResearchRecipePlacement
     {
         whiteLily$placingResearch = recipe instanceof research_crafting_recipe restricted ? restricted : null;
         whiteLily$ingredientIndex = 0;
-        if (whiteLily$placingResearch != null && !research_crafting_gate.permitted(player, recipe.getId()))
+        if (recipe!=null && !com.damezame97.white_lily.recipebook.recipe_unlocks.isUnlocked(player,recipe.getId()))
         {
             whiteLily$placingResearch = null;
             callback.cancel();

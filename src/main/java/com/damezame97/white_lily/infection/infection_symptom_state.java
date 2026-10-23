@@ -8,9 +8,25 @@ import java.util.Map;
 /** 玩家所有的事件症状时钟；不使用现实时间，不保存玩家引用。 */
 public final class infection_symptom_state
 {
+    /** 单个症状计时上限：1 小时（「造血障碍」要求 60 分钟）。 */
+    public static final int MAX_TICKS = 60 * 60 * 20;
+
     public final Map<String, Integer> remaining = new HashMap<>();
     public int perceptionTicks;
     public int poolCooldown;
+    /** 伤口渗血的当前等级（0~4）；只在渗血未结束时保留。 */
+    public int woundSeepageLevel;
+    /** 「愈合迟滞」的当前等级（0~3）。 */
+    public int delayedHealingLevel;
+    public transient int delayedSanTicks;
+    /** 精神涣散的当前等级（0~10）；随存档保存。 */
+    public int mentalDistractionLevel;
+    public transient int mentalDistractionDecay;
+    public transient int mentalDistractionRestart;
+    public transient int seepageSanTicks;
+    public transient double seepageBlocks;
+    public transient boolean seepagePositionValid;
+    public transient double seepageLastX, seepageLastY, seepageLastZ;
     public transient boolean changingEffects;
     public transient long lastTick = Long.MIN_VALUE;
     public transient long lastEvaluation = Long.MIN_VALUE;
@@ -27,7 +43,7 @@ public final class infection_symptom_state
     {
         if (ticks == -1) remaining.put(id, -1);
         else if (ticks <= 0) remaining.remove(id);
-        else remaining.put(id, Math.min(12000, ticks));
+        else remaining.put(id, Math.min(MAX_TICKS, ticks));
     }
     public boolean running(String id) { return remaining(id) != 0; }
     public void clear()
@@ -35,6 +51,15 @@ public final class infection_symptom_state
         remaining.clear();
         perceptionTicks = 0;
         poolCooldown = 0;
+        woundSeepageLevel = 0;
+        delayedHealingLevel = 0;
+        delayedSanTicks = 0;
+        mentalDistractionLevel = 0;
+        mentalDistractionDecay = 0;
+        mentalDistractionRestart = 0;
+        seepageSanTicks = 0;
+        seepageBlocks = 0;
+        seepagePositionValid = false;
         lastTick = Long.MIN_VALUE;
         lastEvaluation = Long.MIN_VALUE;
         dirty = true;
@@ -49,6 +74,9 @@ public final class infection_symptom_state
         tag.put("remaining", durations);
         tag.putInt("perception", perceptionTicks);
         tag.putInt("cooldown", poolCooldown);
+        tag.putInt("seepage_level", woundSeepageLevel);
+        tag.putInt("delayed_level", delayedHealingLevel);
+        tag.putInt("mental_level", mentalDistractionLevel);
         return tag;
     }
     public void load(CompoundTag tag)
@@ -57,9 +85,14 @@ public final class infection_symptom_state
         CompoundTag durations = tag.getCompound("remaining");
         for (String key : infection_symptom_rules.timedIds())
             set(key, durations.contains(key, Tag.TAG_ANY_NUMERIC) && durations.getDouble(key) == -1
-                    ? -1 : bounded(durations, key, 12000));
+                    ? -1 : bounded(durations, key, MAX_TICKS));
         perceptionTicks = bounded(tag, "perception", 1199);
         poolCooldown = bounded(tag, "cooldown", 600);
+        woundSeepageLevel = bounded(tag, "seepage_level", 4);
+        delayedHealingLevel = bounded(tag, "delayed_level", 3);
+        mentalDistractionLevel = bounded(tag, "mental_level", 10);
+        if (!remaining.containsKey("delayed_healing")) delayedHealingLevel = 0;
+        if (!remaining.containsKey("wound_seepage")) woundSeepageLevel = 0;
     }
     private static int bounded(CompoundTag tag, String key, int max)
     {

@@ -11,6 +11,7 @@ import com.damezame97.white_lily.procedures.stored_suffering_events;
 import com.damezame97.white_lily.white_lily;
 import com.damezame97.white_lily.white_lilybuff.mob_effects;
 import com.damezame97.white_lily.white_lilydamage.stored_suffering_damage;
+import com.damezame97.white_lily.white_lilydamage.excessive_hemorrhage;
 import com.mojang.authlib.GameProfile;
 import io.redspace.ironsspellbooks.api.magic.MagicData;
 import io.redspace.ironsspellbooks.api.registry.SpellRegistry;
@@ -58,10 +59,14 @@ public class InfectionSymptomsGameTests
         near(h, 0.8, p.getAttributeValue(attributes.INFECTION_RESISTANCE.get()), "抗性硬上限");
         p.setHealth(16);
         infection_service.set(p, 50);
-        yes(h, !has(p, "healthy_condition") && !has(p, "delayed_healing"), "80%不迟滞");
-        p.setHealth(15.99F);
-        infection_symptoms.reevaluate(p);
-        yes(h, has(p, "delayed_healing"), "低于80%迟滞");
+        yes(h, !has(p, "healthy_condition"), "80%不体况良好");
+        // 愈合迟滞不再是条件症状：门槛改成纯函数（感染 50+10×耐力夹 20~100，血量 <70%-5%×耐力夹 50%~90%）。
+        near(h, 50, infection_symptom_rules.delayedInfectionThreshold(0), "无耐力感染门槛50");
+        near(h, 0.70, infection_symptom_rules.delayedHealthThreshold(0), "无耐力血量门槛70%");
+        near(h, 0.90, infection_symptom_rules.delayedHealthThreshold(-10), "负耐力血量门槛封顶90%");
+        near(h, 0.50, infection_symptom_rules.delayedHealthThreshold(8), "高耐力血量门槛降到50%");
+        near(h, 20, infection_symptom_rules.delayedInfectionThreshold(-10), "负耐力感染门槛降到20");
+        near(h, 100, infection_symptom_rules.delayedInfectionThreshold(9), "高耐力感染门槛封顶100");
         p.setHealth(14);
         infection_service.set(p, 79.9);
         yes(h, !has(p, "rapid_breathing"), "79.9不急促");
@@ -94,31 +99,24 @@ public class InfectionSymptomsGameTests
         attr(p, attributes.SAN.get()).setBaseValue(4000);
         infection_service.set(p, 100);
         infection_symptom_rules.onDirectHit(p, 3);
-        near(h, -50, p.getAttributeValue(attributes.RECOVERY_INTERVAL.get()), "三症状总间隔50秒");
-        near(h, 0.5, p.getAttributeValue(attributes.RESTORE_HEALTH.get()), "渗血扣0.5");
+        // 焦虑(-10) + 0 级渗血(-30) 共 -40（愈合迟滞不再加间隔）。
+        near(h, -40, p.getAttributeValue(attributes.RECOVERY_INTERVAL.get()), "三症状总间隔40秒");
+        near(h, 1, p.getAttributeValue(attributes.RESTORE_HEALTH.get()), "0级渗血不扣回复量");
         infection_symptom_rules.start(p, "recovery_fatigue", 1200);
         near(h, 1.35, infection_symptom_rules.movementMultiplier(p, false, true), "加算35%");
         near(h, 1.35, infection_symptom_rules.movementMultiplier(p, true, false), "游泳同样加算");
         near(h, 1, infection_symptom_rules.movementMultiplier(p, false, false), "走路不变");
-        var data = player_variables.san(p).orElseThrow();
-        san_procedures.syncStateModifiers(p, san_procedures.State.COLLAPSE, data);
-        infection_symptom_rules.reevaluate(p);
-        for (int i = 0; i < 10; i++)
+        // 逐级回复量：现在允许把最终回复量扣成负数（不再钳 0）。
+        for (int level = 1; level <= 4; level++)
         {
-            san_procedures.syncStateModifiers(p, san_procedures.State.COLLAPSE, data);
+            infection_symptom_rules.start(p, "wound_seepage", 1200, level);
             infection_symptom_rules.reevaluate(p);
+            near(h, 1 + infection_symptom_rules.seepageRestorePenalty(level),
+                    p.getAttributeValue(attributes.RESTORE_HEALTH.get()), "等级 " + level + " 的回复量");
         }
-        near(h, 0, p.getAttributeValue(attributes.RESTORE_HEALTH.get()), "SAN和渗血不能反复振荡成负数");
         attr(p, attributes.RESTORE_HEALTH.get()).setBaseValue(-2);
-        san_procedures.syncStateModifiers(p, san_procedures.State.COLLAPSE, data);
         infection_symptom_rules.reevaluate(p);
-        near(h, -2, p.getAttributeValue(attributes.RESTORE_HEALTH.get()), "外部负回复量保留");
-        attr(p, attributes.RESTORE_HEALTH.get()).setBaseValue(0.2);
-        attr(p, attributes.RESTORE_HEALTH.get()).addTransientModifier(new AttributeModifier(UUID.randomUUID(), "test", 1,
-                AttributeModifier.Operation.MULTIPLY_TOTAL));
-        san_procedures.syncStateModifiers(p, san_procedures.State.COLLAPSE, data);
-        infection_symptom_rules.reevaluate(p);
-        near(h, 0, p.getAttributeValue(attributes.RESTORE_HEALTH.get()), "乘法装备下同样不扣成负数");
+        near(h, -22, p.getAttributeValue(attributes.RESTORE_HEALTH.get()), "外部负回复量直接叠加，不钳制");
         h.succeed();
     }
 
@@ -130,9 +128,18 @@ public class InfectionSymptomsGameTests
         infection_symptom_rules.onDirectHit(p, 2.999F);
         yes(h, state(p).remaining("wound_seepage") == 0, "小于3不触发");
         infection_symptom_rules.onDirectHit(p, 3);
-        yes(h, state(p).remaining("wound_seepage") == 600, "首次30秒");
-        for (int i = 0; i < 5; i++) infection_symptom_rules.onDirectHit(p, 3);
-        yes(h, state(p).remaining("wound_seepage") == 1200, "重复触发最高60秒");
+        yes(h, state(p).remaining("wound_seepage") == 1200, "首次1200刻");
+        yes(h, state(p).woundSeepageLevel == 0, "首次给0级");
+        infection_symptom_rules.onDirectHit(p, 3);
+        yes(h, state(p).remaining("wound_seepage") == 1600, "0级每次+400");
+        infection_symptom_rules.onDirectHit(p, 3);
+        yes(h, state(p).remaining("wound_seepage") == 2000, "0级可以到2000");
+        infection_symptom_rules.onDirectHit(p, 3);
+        yes(h, state(p).woundSeepageLevel == 1, "顶到2400就升1级");
+        yes(h, state(p).remaining("wound_seepage") == 2400, "1级初始2400");
+        yes(h, p.getEffect(mob_effects.WOUND_SEEPAGE.get()).getAmplifier() == 1, "显示为1级");
+        infection_symptom_rules.onDirectHit(p, 3);
+        yes(h, state(p).remaining("wound_seepage") == 3000, "1级每次+600");
         infection_service.set(p, 29.9);
         yes(h, !has(p, "wound_seepage"), "低于30提前结束");
         infection_service.set(p, 30);
@@ -141,7 +148,7 @@ public class InfectionSymptomsGameTests
         var event = new LivingDamageEvent(p, p.damageSources().mobAttack(h.makeMockSurvivalPlayer()), 3);
         stored_suffering_events.onDamage(event);
         near(h, 2.1, event.getAmount(), "戒指只立即扣70%");
-        yes(h, state(p).remaining("wound_seepage") == 600, "按拆分前3点触发渗血");
+        yes(h, state(p).remaining("wound_seepage") == 1200, "按拆分前3点触发渗血");
         state(p).set("wound_seepage", 100);
         stored_suffering_events.onDamage(new LivingDamageEvent(p, stored_suffering_damage.source(p.level()), 10));
         yes(h, state(p).remaining("wound_seepage") == 100, "延期到账不重复渗血");
@@ -229,13 +236,12 @@ public class InfectionSymptomsGameTests
             var food = p.getFoodData();
             food.setFoodLevel(20);
             food.setSaturation(10);
-            attr(p, attributes.RECOVERY_INTERVAL.get()).setBaseValue(175);
+            attr(p, attributes.RECOVERY_INTERVAL.get()).setBaseValue(100);
             for (int i = 0; i < 40; i++) food.tick(p);
-            infection_service.set(p, 50);
-            for (int i = 0; i < 459; i++) food.tick(p);
-            near(h, 10, p.getHealth(), "间隔变长后499刻不回血");
+            for (int i = 0; i < 1559; i++) food.tick(p);
+            near(h, 10, p.getHealth(), "180-100=80秒，1599刻不回血");
             food.tick(p);
-            near(h, 11, p.getHealth(), "保留之前40刻，累计500刻回血");
+            near(h, 11, p.getHealth(), "保留之前40刻，累加1600刻回血");
             food.setSaturation(0);
             p.setHealth(10);
             for (int i = 0; i < 3599; i++) food.tick(p);
@@ -362,6 +368,11 @@ public class InfectionSymptomsGameTests
         p.curePotionEffects(new ItemStack(Items.MILK_BUCKET));
         for (String name : infection_symptom_rules.ALL_IDS) yes(h, has(p, name), "喝奶后保留：" + name);
         yes(h, !p.hasEffect(MobEffects.POISON) && !p.hasEffect(MobEffects.BLINDNESS), "外部原版效果仍可清除");
+        // 蜂蜜只清中毒，碰不到渗血（它的治愈列表是空的）。
+        p.addEffect(new MobEffectInstance(MobEffects.POISON, 100));
+        new ItemStack(Items.HONEY_BOTTLE).finishUsingItem(h.getLevel(), p);
+        yes(h, !p.hasEffect(MobEffects.POISON), "蜂蜜照常清掉中毒");
+        for (String name : infection_symptom_rules.ALL_IDS) yes(h, has(p, name), "喝蜂蜜后保留：" + name);
         h.succeed();
     }
 
@@ -419,7 +430,7 @@ public class InfectionSymptomsGameTests
         var magic = MagicData.getPlayerMagicData(p);
         int original = spell.getManaCost(1);
         int cost = infection_mana.cost(p, original);
-        yes(h, cost > original, "精神涣散提高整数成本");
+        yes(h, cost == original, "0级精神涣散不改成本");
         magic.setMana(cost - 1);
         yes(h, !spell.canBeCastedBy(1, CastSource.SPELLBOOK, magic, p).isSuccess(), "预检查使用提高后的成本");
         magic.setMana(1000);
@@ -427,6 +438,8 @@ public class InfectionSymptomsGameTests
         yes(h, spell.canBeCastedBy(1, CastSource.SPELLBOOK, magic, p).isSuccess(), "足够魔力允许施法");
         spell.castSpell(h.getLevel(), 1, p, CastSource.SPELLBOOK, false);
         near(h, before - cost, magic.getMana(), "实际只扣一次相同成本");
+        near(h, 1, infection_symptom_rules.mentalDistractionLevel(p), "花魔力后升至1级");
+        yes(h, infection_mana.cost(p, 100) == 105, "1级成本+5%");
         near(h, 1, infection_symptom_rules.strength(p), "意志系数固定1");
         infection_symptom_rules.start(p, "shivering", 900);
         p.setGameMode(GameType.CREATIVE);
@@ -438,6 +451,287 @@ public class InfectionSymptomsGameTests
         p.setGameMode(GameType.SURVIVAL);
         infection_symptom_rules.tick(p, 2);
         yes(h, has(p, "shivering") && state(p).remaining("shivering") == 899, "回生存继续症状");
+        h.succeed();
+    }
+
+    @GameTest(template = "empty")
+    public static void woundSeepageStaminaScalesThresholds(GameTestHelper h)
+    {
+        Player p = player(h);
+        attr(p, attributes.STAMINA.get()).setBaseValue(2);
+        near(h, 40, infection_symptom_rules.seepageInfectionThreshold(2), "感染阈值 30+5×2");
+        near(h, 7, infection_symptom_rules.seepageDamageThreshold(20, 2), "伤害阈值 3+20×20%");
+        infection_service.set(p, 39.9);
+        infection_symptom_rules.onDirectHit(p, 20);
+        yes(h, !has(p, "wound_seepage"), "感染不够不触发");
+        infection_service.set(p, 40);
+        infection_symptom_rules.onDirectHit(p, 6.999F);
+        yes(h, !has(p, "wound_seepage"), "伤害不够不触发");
+        infection_symptom_rules.onDirectHit(p, 7);
+        yes(h, has(p, "wound_seepage"), "两条都过线才触发");
+        near(h, 60, infection_symptom_rules.seepageInfectionThreshold(10), "感染阈值封顶60");
+        near(h, 0, infection_symptom_rules.seepageInfectionThreshold(-10), "负耐力不降低到0以下");
+        near(h, 0, infection_symptom_rules.seepageStaminaRatio(-3), "负耐力不计比例");
+        near(h, 0.25, infection_symptom_rules.seepageStaminaRatio(9), "比例封顶 25%");
+        h.succeed();
+    }
+
+    @GameTest(template = "empty")
+    public static void woundSeepageEscalatesAndCapsAtLevelFour(GameTestHelper h)
+    {
+        Player p = player(h);
+        infection_service.set(p, 100);
+        int[] durations = {1200, 1600, 2000, 2400};
+        for (int i = 0; i < durations.length; i++)
+        {
+            infection_symptom_rules.onDirectHit(p, 3);
+            yes(h, state(p).remaining("wound_seepage") == durations[i], "第" + (i + 1) + "次应当为" + durations[i]);
+        }
+        yes(h, state(p).woundSeepageLevel == 1, "顶到2400后应当是1级");
+        for (int i = 0; i < 200; i++) infection_symptom_rules.onDirectHit(p, 3);
+        yes(h, state(p).woundSeepageLevel == 4, "最高只能到4级");
+        yes(h, state(p).remaining("wound_seepage") <= 12000, "4级上限12000");
+        // 4级已经是顶，再受击只能顶在上限，不能重置回 6000。
+        state(p).set("wound_seepage", 11900);
+        // 用高伤害避开「耐力抬高伤害门槛」的干扰（满血时 healthy_condition 会给 +1 耐力）。
+        infection_symptom_rules.onDirectHit(p, 20);
+        yes(h, state(p).woundSeepageLevel == 4 && state(p).remaining("wound_seepage") == 12000,
+                "满级顶到上限而不是重置，实测 " + state(p).remaining("wound_seepage"));
+        yes(h, p.getEffect(mob_effects.WOUND_SEEPAGE.get()).getAmplifier() == 4, "显示等级同步到4");
+        for (int level = 0; level <= 4; level++)
+        {
+            yes(h, infection_symptom_rules.seepageInitialDuration(level) == 1200 * (level + 1), "初始公式 " + level);
+            yes(h, infection_symptom_rules.seepageMaximumDuration(level) == 2400 * (level + 1), "上限公式 " + level);
+            yes(h, infection_symptom_rules.seepageExtension(level) == 400 + 200 * level, "延长公式 " + level);
+        }
+        infection_state saved = new infection_state();
+        saved.deserializeNBT(player_variables.infection(p).orElseThrow().serializeNBT());
+        yes(h, saved.symptoms.woundSeepageLevel == 4, "等级随存档保存");
+        h.succeed();
+    }
+
+    @GameTest(template = "empty")
+    public static void woundSeepageLevelEffectsFollowTable(GameTestHelper h)
+    {
+        Player p = player(h);
+        p.setHealth(19);
+        infection_service.set(p, 50);
+        infection_symptom_rules.start(p, "wound_seepage", 1200, 0);
+        infection_symptom_rules.reevaluate(p);
+        near(h, -30, p.getAttributeValue(attributes.RECOVERY_INTERVAL.get()), "0级间隔+30");
+        near(h, 1, p.getAttributeValue(attributes.RESTORE_HEALTH.get()), "0级不扣回复量");
+        near(h, 20, p.getAttributeValue(Attributes.MAX_HEALTH), "0级不改生命上限");
+        infection_symptom_rules.start(p, "wound_seepage", 1200, 1);
+        infection_symptom_rules.reevaluate(p);
+        near(h, -30, p.getAttributeValue(attributes.RECOVERY_INTERVAL.get()), "1级间隔+30");
+        near(h, 0, p.getAttributeValue(attributes.RESTORE_HEALTH.get()), "1级回复量-1");
+        infection_symptom_rules.start(p, "wound_seepage", 1200, 2);
+        infection_symptom_rules.reevaluate(p);
+        near(h, -0.5, p.getAttributeValue(attributes.RESTORE_HEALTH.get()), "2级回复量-1.5");
+        infection_symptom_rules.start(p, "wound_seepage", 1200, 3);
+        infection_symptom_rules.reevaluate(p);
+        near(h, 0, p.getAttributeValue(attributes.RECOVERY_INTERVAL.get()), "3级不再动间隔");
+        near(h, -4, p.getAttributeValue(attributes.RESTORE_HEALTH.get()), "3级回复量-5");
+        near(h, 12, p.getAttributeValue(Attributes.MAX_HEALTH), "3级生命上限-40%");
+        attr(p, attributes.STAMINA.get()).setBaseValue(3);
+        infection_symptom_rules.reevaluate(p);
+        near(h, 16, p.getAttributeValue(Attributes.MAX_HEALTH), "耐力3把3级惩罚减半");
+        infection_symptom_rules.start(p, "wound_seepage", 1200, 4);
+        infection_symptom_rules.reevaluate(p);
+        near(h, -19, p.getAttributeValue(attributes.RESTORE_HEALTH.get()), "4级回复量-20");
+        near(h, 12, p.getAttributeValue(Attributes.MAX_HEALTH), "耐力3时4级-40%");
+        near(h, 0.07, p.getAttributeValue(Attributes.MOVEMENT_SPEED), "4级移速-30%");
+        attr(p, attributes.STAMINA.get()).setBaseValue(0);
+        infection_symptom_rules.reevaluate(p);
+        near(h, 8, p.getAttributeValue(Attributes.MAX_HEALTH), "无耐力时4级-60%");
+        infection_symptom_rules.start(p, "wound_seepage", 1200, 0);
+        p.addEffect(new MobEffectInstance(mob_effects.WOUND_SUPPRESSION.get(), 100, 0, false, false, true));
+        infection_symptom_rules.reevaluate(p);
+        near(h, 0, p.getAttributeValue(attributes.RECOVERY_INTERVAL.get()), "0级抑制能盖住0级");
+        infection_symptom_rules.start(p, "wound_seepage", 1200, 1);
+        infection_symptom_rules.reevaluate(p);
+        near(h, -30, p.getAttributeValue(attributes.RECOVERY_INTERVAL.get()), "0级抑制盖不住1级");
+        h.succeed();
+    }
+
+    @GameTest(template = "empty")
+    public static void woundSeepageSanDrainHonoursWillpower(GameTestHelper h)
+    {
+        Player p = player(h);
+        p.setHealth(19);
+        infection_service.set(p, 50);
+        attr(p, attributes.SAN.get()).setBaseValue(10000);
+        attr(p, attributes.WILLPOWER_STRENGTH.get()).setBaseValue(0);
+        infection_symptom_rules.start(p, "wound_seepage", 400, 3);
+        for (int i = 0; i < 20; i++) infection_symptom_rules.tick(p, i);
+        near(h, 9995, san_procedures.currentSan(p), "3级每秒-5理智");
+        attr(p, attributes.WILLPOWER_STRENGTH.get()).setBaseValue(2);
+        for (int i = 20; i < 60; i++) infection_symptom_rules.tick(p, i);
+        near(h, 9995, san_procedures.currentSan(p), "意志≥2免疫3级");
+        attr(p, attributes.WILLPOWER_STRENGTH.get()).setBaseValue(0.5);
+        infection_symptom_rules.start(p, "wound_seepage", 400, 1);
+        for (int i = 60; i < 220; i++) infection_symptom_rules.tick(p, i);
+        near(h, 9993, san_procedures.currentSan(p), "1级每4秒-1，160刻应扣2");
+        attr(p, attributes.WILLPOWER_STRENGTH.get()).setBaseValue(1);
+        for (int i = 220; i < 300; i++) infection_symptom_rules.tick(p, i);
+        near(h, 9993, san_procedures.currentSan(p), "意志≥1免疫1级");
+        h.succeed();
+    }
+
+    @GameTest(template = "empty")
+    public static void woundSeepageBleedsOnMovement(GameTestHelper h)
+    {
+        Player p = player(h);
+        p.setHealth(20);
+        p.setPos(0, 100, 0);
+        infection_service.set(p, 50);
+        // 不靠血量断言：3/4 级会改生命上限，血量会被夹，改成直接统计出血伤害总额。
+        double[] bleed = {0};
+        Object listener = new Object()
+        {
+            @net.minecraftforge.eventbus.api.SubscribeEvent
+            public void onDamage(LivingDamageEvent event)
+            {
+                if (event.getEntity() == p && excessive_hemorrhage.NAME.equals(event.getSource().getMsgId()))
+                    bleed[0] += event.getAmount();
+            }
+        };
+        net.minecraftforge.common.MinecraftForge.EVENT_BUS.register(listener);
+        try
+        {
+            infection_symptom_rules.start(p, "wound_seepage", 1200, 3);
+            infection_symptom_rules.tick(p, 0);
+            p.setSprinting(false);
+            for (int i = 1; i <= 4; i++)
+            {
+                p.setPos(i * 1.5, 100, 0);
+                infection_symptom_rules.tick(p, i);
+            }
+            near(h, 0, bleed[0], "3级不疾走不掉血");
+            p.setSprinting(true);
+            for (int i = 5; i <= 9; i++)
+            {
+                p.setPos(6 + (i - 4) * 1.5, 100, 0);
+                infection_symptom_rules.tick(p, i);
+            }
+            near(h, 1, bleed[0], "3级疾走6格掉1点");
+            // 4级：走路也算，每 3 格 生命上限 20% + 2。
+            bleed[0] = 0;
+            p.setSprinting(false);
+            infection_symptom_rules.start(p, "wound_seepage", 1200, 4);
+            infection_symptom_rules.tick(p, 10);
+            double expected = p.getMaxHealth() * 0.20D + 2.0D;
+            double x = p.getX();
+            for (int i = 11; i <= 12; i++)
+            {
+                p.setPos(x + (i - 10) * 1.5, 100, 0);
+                infection_symptom_rules.tick(p, i);
+            }
+            near(h, expected, bleed[0], "4级走路3格掉 20%上限+2");
+        }
+        finally { net.minecraftforge.common.MinecraftForge.EVENT_BUS.unregister(listener); }
+        h.succeed();
+    }
+
+    @GameTest(template = "empty")
+    public static void delayedHealingMultiplierAndSanDrain(GameTestHelper h)
+    {
+        Player p = player(h);
+        p.setHealth(19);
+        infection_service.set(p, 50);
+        near(h, 1, infection_symptom_rules.healMultiplier(p), "没有迟滞时系数为1");
+        for (int level = 0; level <= 3; level++)
+        {
+            infection_symptom_rules.start(p, "delayed_healing", 4800, level);
+            infection_symptom_rules.reevaluate(p);
+            near(h, infection_symptom_rules.delayedMultiplier(level),
+                    infection_symptom_rules.healMultiplier(p), "等级" + level + "的系数");
+            near(h, level, p.getEffect(mob_effects.DELAYED_HEALING.get()).getAmplifier(), "显示的等级" + level);
+        }
+        attr(p, attributes.SAN.get()).setBaseValue(10000);
+        attr(p, attributes.WILLPOWER_STRENGTH.get()).setBaseValue(0);
+        infection_symptom_rules.start(p, "delayed_healing", 4800, 3);
+        for (int i = 0; i < 40; i++) infection_symptom_rules.tick(p, i);
+        near(h, 9996, san_procedures.currentSan(p), "3级每2秒-4理智");
+        attr(p, attributes.WILLPOWER_STRENGTH.get()).setBaseValue(2);
+        for (int i = 40; i < 120; i++) infection_symptom_rules.tick(p, i);
+        near(h, 9996, san_procedures.currentSan(p), "意志≥2免疫3级");
+        attr(p, attributes.WILLPOWER_STRENGTH.get()).setBaseValue(0.5);
+        infection_symptom_rules.start(p, "delayed_healing", 2000, 1);
+        for (int i = 120; i < 280; i++) infection_symptom_rules.tick(p, i);
+        near(h, 9994, san_procedures.currentSan(p), "1级每8秒-1，160刻扣2");
+        h.succeed();
+    }
+
+    @GameTest(template = "empty")
+    public static void delayedHealingRollsFollowThresholdsAndLevels(GameTestHelper h)
+    {
+        Player p = player(h);
+        p.setHealth(19);
+        infection_service.set(p, 10);
+        infection_symptom_rules.onDelayedHealAction(p, new Rolls(0.0, 0));
+        yes(h, !has(p, "delayed_healing"), "感染不到门槛不掷中");
+        infection_service.set(p, 50);
+        p.setHealth(16);
+        infection_symptom_rules.onDelayedHealAction(p, new Rolls(0.0, 0));
+        yes(h, !has(p, "delayed_healing"), "血量不到门槛不掷中");
+        p.setHealth(10);
+        infection_symptom_rules.onDelayedHealAction(p, new Rolls(0.0, 0));
+        yes(h, has(p, "delayed_healing") && state(p).delayedHealingLevel == 0, "满足门槛时得到0级");
+        yes(h, state(p).remaining("delayed_healing") == 4800, "nextInt→0 时是4分钟");
+        infection_symptom_rules.onDelayedHealAction(p, new Rolls(0.5, 0));
+        yes(h, state(p).delayedHealingLevel == 0, "3%骰没中不升级");
+        infection_symptom_rules.onDelayedHealAction(p, new Rolls(0.0, 4));
+        yes(h, state(p).delayedHealingLevel == 1, "0级升1级");
+        yes(h, state(p).remaining("delayed_healing") == 9600, "升级后重掷为8分钟");
+        infection_symptom_rules.onDelayedHealAction(p, new Rolls(0.0, 0));
+        yes(h, state(p).delayedHealingLevel == 2, "1级升2级");
+        infection_symptom_rules.onDelayedHealAction(p, new Rolls(0.0, 0));
+        yes(h, state(p).delayedHealingLevel == 3, "2级升3级");
+        infection_symptom_rules.onDelayedHealAction(p, new Rolls(0.0, 0));
+        yes(h, state(p).delayedHealingLevel == 3 && state(p).remaining("delayed_healing") == 72000,
+                "满级0.012%把时长变成60分钟");
+        h.succeed();
+    }
+
+    @GameTest(template = "empty")
+    public static void mentalDistractionStacksCostsAndDecays(GameTestHelper h)
+    {
+        Player p = player(h);
+        p.setHealth(10);
+        attr(p, attributes.SAN.get()).setBaseValue(4000);
+        infection_service.set(p, 200);
+        infection_symptom_rules.reevaluate(p);
+        yes(h, has(p, "mental_distraction") && state(p).mentalDistractionLevel == 0, "条件成立时获得0级");
+        yes(h, p.getEffect(mob_effects.MENTAL_DISTRACTION.get()).isInfiniteDuration(), "显示为无限时长");
+        for (int i = 0; i < 3; i++) infection_symptom_rules.onManaSpent(p);
+        yes(h, state(p).mentalDistractionLevel == 3, "每消耗一次魔力升一级");
+        near(h, 1.15, infection_symptom_rules.mentalCostMultiplier(3), "3级成本+15%");
+        near(h, 1.30, infection_symptom_rules.mentalCastMultiplier(3), "3级施法时长+30%");
+        for (int i = 0; i < 20; i++) infection_symptom_rules.onManaSpent(p);
+        yes(h, state(p).mentalDistractionLevel == 10, "等级上限10");
+        yes(h, p.getEffect(mob_effects.MENTAL_DISTRACTION.get()).getAmplifier() == 10, "显示等级同步到10");
+        // 条件失效：保留效果、仍是无限时长，先等 10 秒再每 30 秒降一级。
+        infection_service.set(p, 100);
+        infection_symptom_rules.reevaluate(p);
+        yes(h, has(p, "mental_distraction") && p.getEffect(mob_effects.MENTAL_DISTRACTION.get()).isInfiniteDuration(),
+                "条件失效仍保留");
+        for (int i = 0; i < 200; i++) infection_symptom_rules.tick(p, i);
+        yes(h, state(p).mentalDistractionLevel == 10, "10秒内不降级");
+        for (int i = 200; i < 800; i++) infection_symptom_rules.tick(p, i);
+        yes(h, state(p).mentalDistractionLevel == 9, "满30秒降一级");
+        infection_symptom_rules.onManaSpent(p);
+        yes(h, state(p).mentalDistractionLevel == 10, "消耗魔力打断并升一级");
+        state(p).mentalDistractionLevel = 1;
+        for (int i = 800; i < 1600; i++) infection_symptom_rules.tick(p, i);
+        yes(h, !has(p, "mental_distraction"), "降到0时清除");
+        // 0 级 + 条件不满足 → 直接清除。
+        infection_service.set(p, 200);
+        infection_symptom_rules.reevaluate(p);
+        yes(h, has(p, "mental_distraction"), "重新获得0级");
+        infection_service.set(p, 10);
+        infection_symptom_rules.reevaluate(p);
+        yes(h, !has(p, "mental_distraction"), "0级且条件不满足立即清除");
         h.succeed();
     }
 

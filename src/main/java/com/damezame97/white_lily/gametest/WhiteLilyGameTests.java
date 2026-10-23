@@ -18,6 +18,7 @@ import com.damezame97.white_lily.white_lilydamage.depletion;
 import com.damezame97.white_lily.white_lilydamage.load_burden;
 import com.damezame97.white_lily.white_lilydamage.meltdown;
 import com.damezame97.white_lily.white_lilydamage.mental_injury;
+import com.damezame97.white_lily.white_lilydamage.excessive_hemorrhage;
 import com.damezame97.white_lily.white_lilydamage.remit_loadcapacity;
 import com.damezame97.white_lily.white_lilydamage.nightmare;
 import com.damezame97.white_lily.white_lilydamage.shadow_damage;
@@ -2151,6 +2152,10 @@ public final class WhiteLilyGameTests {
         Player shooter = helper.makeMockPlayer();
         Player victim = helper.makeMockPlayer();
         setRifleAttributes(shooter, 0.0D, 0.5D);
+        // Apothic 的暴击率会在这个事件里掷骰（×1.5），显式摆零才能算出确定值。
+        var crit = net.minecraftforge.registries.ForgeRegistries.ATTRIBUTES.getValue(
+                new net.minecraft.resources.ResourceLocation("attributeslib", "crit_chance"));
+        if (crit != null && shooter.getAttribute(crit) != null) shooter.getAttribute(crit).setBaseValue(0.0D);
 
         DamageSource bullet = ModDamageTypes.Sources.bullet(
                 helper.getLevel().registryAccess(), shooter, shooter, false);
@@ -2797,6 +2802,10 @@ public final class WhiteLilyGameTests {
         // 注意不能用 damageSources().generic()：原版的 generic 就在 bypasses_armor 里，
         // 根本没有「盔甲可以免掉的那一部分」可以补回来。用怪物近战才是能穿甲的伤害。
         Zombie biter = helper.spawn(EntityType.ZOMBIE, new BlockPos(0, 0, 0));
+        // 僵尸近战会被 Apothic 的暴击率掷骰改写（1.5 倍），这里显式摆零保证可重复。
+        var crit = net.minecraftforge.registries.ForgeRegistries.ATTRIBUTES.getValue(
+                new net.minecraft.resources.ResourceLocation("attributeslib", "crit_chance"));
+        if (crit != null && biter.getAttribute(crit) != null) biter.getAttribute(crit).setBaseValue(0.0D);
         DamageSource mainSource = helper.getLevel().damageSources().mobAttack(biter);
         LivingHurtEvent event = new LivingHurtEvent(player, mainSource, 10.0F);
         MinecraftForge.EVENT_BUS.post(event);
@@ -2998,6 +3007,51 @@ public final class WhiteLilyGameTests {
             helper.assertTrue(langValue(locale, "white_lily.steadfast_in_spirit") == null,
                     locale + " 不该再留着旧键 white_lily.steadfast_in_spirit");
         }
+        helper.succeed();
+    }
+
+    /** 大出血伤害类型——shadow_damage + remit_loadcapacity + 五个 bypasses，死亡键留空但存在。 */
+    @GameTest(template = TEMPLATE)
+    public static void excessiveHemorrhageDamageTypeIsWired(GameTestHelper helper) {
+        var registry = helper.getLevel().registryAccess().registryOrThrow(Registries.DAMAGE_TYPE);
+        Holder<DamageType> holder = registry.getHolderOrThrow(excessive_hemorrhage.KEY);
+        helper.assertTrue(holder.is(shadow_damage.TAG), "excessive_hemorrhage 应当在 shadow_damage 里");
+        for (TagKey<DamageType> bypass : shadow_damage.IMPLIED_BYPASSES) {
+            helper.assertTrue(holder.is(bypass), "excessive_hemorrhage 缺少 " + bypass.location());
+        }
+        helper.assertTrue(holder.is(remit_loadcapacity.TAG), "excessive_hemorrhage 应当在 remit_loadcapacity 里");
+        helper.assertTrue(excessive_hemorrhage.NAME.equals(holder.value().msgId()),
+                "excessive_hemorrhage 的 message_id 实测 " + holder.value().msgId());
+        helper.assertTrue(excessive_hemorrhage.source(helper.getLevel()).getEntity() == null,
+                "出血伤害不该记在任何人头上");
+        for (String locale : new String[]{"zh_cn", "en_us"}) {
+            String base = langValue(locale, excessive_hemorrhage.DEATH_MESSAGE_KEY);
+            String player = langValue(locale, excessive_hemorrhage.DEATH_MESSAGE_PLAYER_KEY);
+            helper.assertTrue(base != null, locale + " 缺少 " + excessive_hemorrhage.DEATH_MESSAGE_KEY);
+            helper.assertTrue(player != null, locale + " 缺少 " + excessive_hemorrhage.DEATH_MESSAGE_PLAYER_KEY);
+            // 按需求留空，但用户随时可能填——只要求在留空状态时不乱写占位符。
+            helper.assertTrue(base != null && player != null, locale + " 的两条死亡键都要在");
+        }
+        helper.succeed();
+    }
+
+    /** 「造血障碍」进度、图标贴图与中英文文案都已随资料包发出。 */
+    @GameTest(template = TEMPLATE)
+    public static void hematopoiesisDisorderAdvancementIsShipped(GameTestHelper helper) {
+        helper.assertTrue(existsResource("/data/white_lily/advancements/medical/hematopoiesis_disorder.json"),
+                "缺少造血障碍进度 json");
+        helper.assertTrue(existsResource("/assets/white_lily/textures/item/delayed_healing_icon.png"),
+                "缺少成就图标贴图");
+        helper.assertTrue(existsResource("/assets/white_lily/models/item/delayed_healing_icon.json"),
+                "缺少成就图标模型");
+        helper.assertTrue("造血障碍".equals(langValue("zh_cn", "advancements.white_lily.hematopoiesis_disorder.title")),
+                "zh_cn 成就标题实测 " + langValue("zh_cn", "advancements.white_lily.hematopoiesis_disorder.title"));
+        helper.assertTrue("不幸获得一次持续60分钟的愈合迟滞".equals(
+                        langValue("zh_cn", "advancements.white_lily.hematopoiesis_disorder.description")),
+                "zh_cn 成就描述实测 " + langValue("zh_cn", "advancements.white_lily.hematopoiesis_disorder.description"));
+        helper.assertTrue("Unlucky enough to get a 60 minute delayed_healing".equals(
+                        langValue("en_us", "advancements.white_lily.hematopoiesis_disorder.description")),
+                "en_us 成就描述实测 " + langValue("en_us", "advancements.white_lily.hematopoiesis_disorder.description"));
         helper.succeed();
     }
 

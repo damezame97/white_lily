@@ -65,7 +65,7 @@ public final class LivelihoodGameTests
             yes(h,publicItems.add(stack.getItem()),"三栏无重复");
             yes(h,tab.getSearchTabDisplayItems().contains(stack),"公开物品进入创造搜索汇总");
         }
-        for(var hidden:List.of(items.TAB_ICON.get(),items.FLESH_RING.get(),items.IMPROVE_BODY.get(),items.INVALID_PLACEHOLDER.get(),items.FATE_COMPASS.get()))
+        for(var hidden:List.of(items.TAB_ICON.get(),items.DELAYED_HEALING_ICON.get(),items.FLESH_RING.get(),items.IMPROVE_BODY.get(),items.INVALID_PLACEHOLDER.get(),items.FATE_COMPASS.get()))
             yes(h,!publicItems.contains(hidden),"原隐藏图标和绑定饰品不暴露");
         for(var item:List.of(items.PLANT_FIBER.get(),items.WOODEN_TRAY.get(),items.CLAY_BOWL.get(),items.GLASS_TUBE.get(),items.FILTER_PAPER.get(),
                 items.DESICCANT_PACKET.get(),items.HERBAL_RESIDUE.get(),items.HERBAL_POUCH.get()))

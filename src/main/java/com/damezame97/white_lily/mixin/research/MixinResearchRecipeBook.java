@@ -2,6 +2,7 @@ package com.damezame97.white_lily.mixin.research;
 
 import com.damezame97.white_lily.crafting.research_crafting_recipe;
 import com.damezame97.white_lily.research.research_crafting_gate;
+import com.damezame97.white_lily.recipebook.recipe_unlocks;
 import net.minecraft.nbt.ListTag;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerPlayer;
@@ -23,8 +24,7 @@ public abstract class MixinResearchRecipeBook
     private Collection<Recipe<?>> whiteLily$researchAwards(Collection<Recipe<?>> recipes, Collection<Recipe<?>> ignored,
                                                          ServerPlayer player)
     {
-        return recipes.stream().filter(recipe -> !(recipe instanceof research_crafting_recipe)
-                || research_crafting_gate.permitted(player, recipe.getId())).toList();
+        return recipes.stream().filter(recipe -> com.damezame97.white_lily.recipebook.recipe_unlocks.isUnlocked(player,recipe.getId())).toList();
     }
 
     @Inject(method = "sendInitialRecipeBook", at = @At("HEAD"))
@@ -39,7 +39,7 @@ public abstract class MixinResearchRecipeBook
             ResourceLocation id = ResourceLocation.tryParse(known.getString(index));
             if (id == null) continue;
             player.getServer().getRecipeManager().byKey(id).ifPresent(recipe -> {
-                if (recipe instanceof research_crafting_recipe && !research_crafting_gate.permitted(player, id)) book.remove(recipe);
+                if (!com.damezame97.white_lily.recipebook.recipe_unlocks.isUnlocked(player,id)) book.remove(recipe);
             });
         }
     }

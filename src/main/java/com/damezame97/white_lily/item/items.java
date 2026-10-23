@@ -52,6 +52,19 @@ public final class items
             ITEMS.register("tab_icon", () -> new Item(new Item.Properties()));
 
     /**
+     * 隐藏的成就图标：只为「造血障碍」这条进度提供一个能用贴图的 item 壳子。
+     *
+     * <p>贴图直接用 {@code assets/white_lily/textures/item/delayed_healing_icon.png}（即效果图的副本），
+     * 模型 {@code models/item/delayed_healing_icon.json}。它不进任何创造模式栏。</p>
+     */
+    public static final RegistryObject<Item> DELAYED_HEALING_ICON =
+            ITEMS.register("delayed_healing_icon", () -> new Item(new Item.Properties()));
+
+    public static final RegistryObject<Item> GOLDEN_SWORD_RECIPE_BOOK =
+            ITEMS.register("golden_sword_recipe_book", () -> new recipe_unlock_book(
+                    net.minecraft.resources.ResourceLocation.fromNamespaceAndPath("minecraft", "golden_sword")));
+
+    /**
      * 「魔力苹果」——见 {@link magic_apple}。
      *
      * <p>贴图 {@code assets/white_lily/textures/item/magic_apple.png}（即 Magic_Apple.png），

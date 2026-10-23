@@ -152,6 +152,7 @@ public final class ReviewRegressionGameTests
     public static void ringAnvilRenameRetainsIdentityAndCannotRepairOrEnchant(GameTestHelper h)
     {
         var p=player(h);p.experienceLevel=50;
+        com.damezame97.white_lily.recipebook.recipe_unlocks.grantForTesting(p, com.damezame97.white_lily.recipebook.recipe_menu_gate.operation("anvil"));
         BlockPos pos=h.absolutePos(new BlockPos(1,2,1));h.getLevel().setBlock(pos,Blocks.ANVIL.defaultBlockState(),3);
         var menu=new AnvilMenu(1,p.getInventory(),ContainerLevelAccess.create(h.getLevel(),pos));
         p.containerMenu=menu;
@@ -182,6 +183,7 @@ public final class ReviewRegressionGameTests
     {
         ClassNode node=new ClassNode();node.name=InfectionMixinPlugin.SPELL;
         node.methods.add(new MethodNode(Opcodes.ACC_PUBLIC,"getManaCost","(I)I",null,null));
+        node.methods.add(new MethodNode(Opcodes.ACC_PUBLIC,"getEffectiveCastTime","(ILnet/minecraft/world/entity/LivingEntity;)I",null,null));
         for(String signature:List.of(InfectionMixinPlugin.CHECK,InfectionMixinPlugin.PAY))
         {
             int split=signature.indexOf('(');
@@ -189,12 +191,17 @@ public final class ReviewRegressionGameTests
             method.instructions.add(new MethodInsnNode(Opcodes.INVOKEVIRTUAL,node.name,"getManaCost","(I)I",false));
             node.methods.add(method);
         }
-        yes(h,InfectionMixinPlugin.compatible(node),"三个已知接口全部存在才启用");
+        yes(h,InfectionMixinPlugin.compatible(node),"四个已知接口全部存在才启用");
         node.methods.get(1).desc="()V";
         yes(h,!InfectionMixinPlugin.compatible(node),"预检查签名变化时整体关闭");
         node.methods.get(1).desc=InfectionMixinPlugin.CHECK.substring(InfectionMixinPlugin.CHECK.indexOf('('));
+        node.methods.get(3).name="renamed";
+        yes(h,!InfectionMixinPlugin.compatible(node),"施法时长接口缺失时整体关闭");
+        node.methods.get(3).name="getEffectiveCastTime";
         node.methods.get(2).instructions.add(new MethodInsnNode(Opcodes.INVOKEVIRTUAL,node.name,"getManaCost","(I)I",false));
         yes(h,!InfectionMixinPlugin.compatible(node),"扣费调用数量变化时整体关闭，不能半启用");
         h.succeed();
     }
+
+
 }

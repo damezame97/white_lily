@@ -15,6 +15,8 @@ public abstract class MixinResearchResultPickup
     @Inject(method = "mayPickup", at = @At("HEAD"), cancellable = true)
     private void whiteLily$researchPickup(Player player, CallbackInfoReturnable<Boolean> callback)
     {
-        if (!research_crafting_gate.canTake((Slot)(Object)this, player)) callback.setReturnValue(false);
+        Slot slot=(Slot)(Object)this;
+        if (!research_crafting_gate.canTake(slot, player)
+                || !com.damezame97.white_lily.recipebook.recipe_menu_gate.canTake(player.containerMenu,slot,player)) callback.setReturnValue(false);
     }
 }

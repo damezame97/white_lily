@@ -1,0 +1,14 @@
+{
+  "display": {
+    "icon": { "item": "white_lily:delayed_healing_icon" },
+    "title": { "translate": "advancements.white_lily.hematopoiesis_disorder.title" },
+    "description": { "translate": "advancements.white_lily.hematopoiesis_disorder.description" },
+    "frame": "challenge",
+    "show_toast": true,
+    "announce_to_chat": true,
+    "hidden": true
+  },
+  "criteria": {
+    "granted": { "trigger": "minecraft:impossible" }
+  }
+}

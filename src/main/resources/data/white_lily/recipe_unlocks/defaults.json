@@ -1,0 +1,49 @@
+{
+  "initial": [
+    "white_lily:investigation_handbook", "white_lily:simple_processing_table", "white_lily:stone_mortar",
+    "white_lily:wooden_tray", "white_lily:charcoal_powder", "white_lily:clay_bowl", "white_lily:beeswax_block",
+    "white_lily:blank_label", "white_lily:coarse_cloth", "white_lily:coarse_cloth_from_fiber",
+    "white_lily:cork_stopper", "white_lily:desiccant_packet", "white_lily:filter_paper",
+    "white_lily:glass_tube", "white_lily:low_qualitypotion", "white_lily:revealed_prescription",
+    "white_lily:thin_cloth_strip", "white_lily:processing/hemp_fiber"
+  ],
+  "initial_outputs": [
+    "#minecraft:planks", "minecraft:stick", "minecraft:crafting_table", "minecraft:torch", "minecraft:charcoal",
+    "minecraft:wooden_pickaxe", "minecraft:wooden_axe", "minecraft:wooden_shovel", "minecraft:wooden_hoe", "minecraft:wooden_sword",
+    "minecraft:stone_pickaxe", "minecraft:stone_axe", "minecraft:stone_shovel", "minecraft:stone_hoe", "minecraft:stone_sword",
+    "minecraft:furnace", "minecraft:chest", "minecraft:bowl", "minecraft:campfire", "minecraft:ladder",
+    "minecraft:bread", "minecraft:paper", "minecraft:book", "minecraft:glass", "minecraft:glass_bottle", "minecraft:string"
+  ],
+  "on_pickup": [
+    { "item": "minecraft:raw_iron", "outputs": ["minecraft:iron_ingot"] },
+    { "item": "minecraft:iron_ore", "outputs": ["minecraft:iron_ingot"] },
+    { "item": "minecraft:deepslate_iron_ore", "outputs": ["minecraft:iron_ingot"] },
+    { "item": "minecraft:raw_gold", "outputs": ["minecraft:gold_ingot"] },
+    { "item": "minecraft:gold_ore", "outputs": ["minecraft:gold_ingot"] },
+    { "item": "minecraft:deepslate_gold_ore", "outputs": ["minecraft:gold_ingot"] },
+    { "item": "minecraft:iron_ingot", "outputs": ["minecraft:iron_pickaxe", "minecraft:iron_axe", "minecraft:iron_sword", "minecraft:iron_shovel", "minecraft:iron_hoe", "minecraft:bucket", "minecraft:shears", "minecraft:shield", "minecraft:flint_and_steel", "minecraft:anvil", "minecraft:stonecutter", "minecraft:smithing_table", "minecraft:blast_furnace"] },
+    { "item": "minecraft:gold_ingot", "outputs": ["minecraft:golden_pickaxe", "minecraft:golden_axe", "minecraft:golden_shovel", "minecraft:golden_hoe", "minecraft:gold_nugget"] },
+    { "item": "minecraft:diamond", "outputs": ["minecraft:diamond_pickaxe", "minecraft:diamond_axe", "minecraft:diamond_shovel", "minecraft:diamond_hoe", "minecraft:diamond_sword", "minecraft:enchanting_table"] },
+    { "item": "minecraft:beef", "outputs": ["minecraft:cooked_beef"] },
+    { "item": "minecraft:porkchop", "outputs": ["minecraft:cooked_porkchop"] },
+    { "item": "minecraft:chicken", "outputs": ["minecraft:cooked_chicken"] },
+    { "item": "minecraft:mutton", "outputs": ["minecraft:cooked_mutton"] },
+    { "item": "minecraft:rabbit", "outputs": ["minecraft:cooked_rabbit"] },
+    { "item": "minecraft:cod", "outputs": ["minecraft:cooked_cod"] },
+    { "item": "minecraft:salmon", "outputs": ["minecraft:cooked_salmon"] },
+    { "item": "minecraft:potato", "outputs": ["minecraft:baked_potato"] },
+    { "item": "minecraft:anvil", "recipes": ["white_lily:operation/anvil"] },
+    { "item": "minecraft:grindstone", "recipes": ["white_lily:operation/grindstone"] },
+    { "item": "minecraft:loom", "recipes": ["white_lily:operation/loom"] },
+    { "item": "minecraft:cartography_table", "recipes": ["white_lily:operation/cartography"] },
+    { "item": "minecraft:enchanting_table", "recipes": ["white_lily:operation/enchanting"] },
+    { "item": "minecraft:brewing_stand", "recipes": ["white_lily:operation/brewing"] },
+    { "item": "irons_spellbooks:arcane_anvil", "recipes": ["white_lily:operation/arcane_anvil"] },
+    { "item": "irons_spellbooks:inscription_table", "recipes": ["white_lily:operation/inscription"] },
+    { "item": "irons_spellbooks:scroll_forge", "recipes": ["white_lily:operation/scroll_forge"] }
+  ],
+  "on_advancement": [
+    { "advancement": "minecraft:story/mine_stone", "outputs": ["minecraft:smoker", "minecraft:grindstone", "minecraft:loom", "minecraft:cartography_table"] },
+    { "advancement": "minecraft:adventure/trade", "recipes": ["white_lily:operation/trading"] }
+  ]
+}

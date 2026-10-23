@@ -254,6 +254,7 @@ public final class research_service
     /** 登录/重生/资源重载也修复原版配方书通知，不要求发生新的研究变化。 */
     public static void reconcile(ServerPlayer server)
     {
+        com.damezame97.white_lily.recipebook.recipe_unlocks.researchChanged(server);
         if (server.connection != null)
         {
             refresh(server,false);

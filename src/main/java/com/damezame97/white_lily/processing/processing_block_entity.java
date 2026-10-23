@@ -26,6 +26,9 @@ import net.minecraft.nbt.ListTag;
 import net.minecraft.nbt.StringTag;
 import com.damezame97.white_lily.research.research_catalog;
 import com.damezame97.white_lily.research.research_service;
+import com.damezame97.white_lily.recipebook.recipe_unlocks;
+import net.minecraft.server.level.ServerPlayer;
+import java.util.UUID;
 
 /** 仅服务端推进的八槽加工台；不公开物品能力，第一版不接受漏斗自动化。 */
 @ParametersAreNonnullByDefault
@@ -33,7 +36,7 @@ import com.damezame97.white_lily.research.research_service;
 public final class processing_block_entity extends BlockEntity implements MenuProvider
 {
     public static final int TOOL = 0, CONTAINER = 4, RESULT = 5, RETURNED = 6, BYPRODUCT = 7;
-    public static final int IDLE = 0, WORKING = 1, BLOCKED = 2, UNREGISTERED = 3;
+    public static final int IDLE = 0, WORKING = 1, BLOCKED = 2, UNREGISTERED = 3, LOCKED = 4, OWNER_OFFLINE = 5;
     private final Set<ResourceLocation> registeredRecipes=new LinkedHashSet<>();
     private int progress;
     private int total;
@@ -44,6 +47,9 @@ public final class processing_block_entity extends BlockEntity implements MenuPr
     private ItemStack toolSnapshot = ItemStack.EMPTY;
     private boolean internalMutation;
     private boolean dropped;
+    @Nullable private UUID operator;
+    @Nullable private UUID outputOwner;
+    @Nullable private ResourceLocation outputRecipe;
 
     private final ItemStackHandler inventory = new ItemStackHandler(8)
     {
@@ -63,6 +69,7 @@ public final class processing_block_entity extends BlockEntity implements MenuPr
                 if (slot == TOOL) resetProcessing();
                 else if (slot < RESULT) validateChangedInputs();
             }
+            if (slot >= RESULT && !hasOutputs()) { outputOwner = null; outputRecipe = null; }
             setChanged();
         }
     };
@@ -105,6 +112,57 @@ public final class processing_block_entity extends BlockEntity implements MenuPr
         return canProcessRecipe(recipe.getId(),recipe.researchNode(),registeredRecipes.contains(recipe.getId()));
     }
 
+    /** Machine registration never substitutes for the current player's personal recipe/research progress. */
+    public boolean canProcess(Player player, processing_recipe recipe)
+    {
+        return canProcess(recipe) && recipe_unlocks.isUnlocked(player, recipe.getId())
+                && research_service.canCraft(player, recipe.getId());
+    }
+
+    private boolean hasOutputs()
+    {
+        return !inventory.getStackInSlot(RESULT).isEmpty() || !inventory.getStackInSlot(RETURNED).isEmpty()
+                || !inventory.getStackInSlot(BYPRODUCT).isEmpty();
+    }
+
+    public boolean canEditInputs(Player player)
+    {
+        return level != null && !isRemoved() && player instanceof ServerPlayer && player.level() == level
+                && player.isAlive() && !player.isRemoved() && (!hasOutputs() || outputOwner == null
+                || outputOwner.equals(player.getUUID()));
+    }
+
+    /** Called only from an authenticated server menu operation, before changing any input slot. */
+    public boolean authorizeInput(Player player)
+    {
+        if (!canEditInputs(player)) return false;
+        if (!player.getUUID().equals(operator))
+        {
+            resetProcessing();
+            operator = player.getUUID();
+            setChanged();
+        }
+        return true;
+    }
+
+    @Nullable private ServerPlayer currentOperator()
+    {
+        if (level == null || operator == null) return null;
+        Player player = level.getPlayerByUUID(operator);
+        return player instanceof ServerPlayer server && server.isAlive() && !server.isRemoved() ? server : null;
+    }
+
+    public boolean canTakeOutputs(Player player)
+    {
+        if (level == null || level.isClientSide || isRemoved() || !(player instanceof ServerPlayer)
+                || player.level() != level || !player.isAlive() || player.isRemoved()) return false;
+        if (!hasOutputs()) return true;
+        // Legacy output has no provenance: it may be recovered, but cannot authorize another batch.
+        if (outputOwner == null || outputRecipe == null) return true;
+        return outputOwner.equals(player.getUUID()) && recipe_unlocks.isUnlocked(player, outputRecipe)
+                && research_service.canCraft(player, outputRecipe);
+    }
+
     /**
      * 一台机器能不能跑某条配方。
      *
@@ -133,7 +191,8 @@ public final class processing_block_entity extends BlockEntity implements MenuPr
         int added=0;
         for(processing_recipe recipe:level.getRecipeManager().getAllRecipesFor(processing_registry.RECIPE_TYPE.get()))
             if(recipe.researchNode()!=null && recipe.researchNode().equals(research_catalog.recipeOwners().get(recipe.getId()))
-                    && research_service.canCraft(player,recipe.getId()) && registeredRecipes.add(recipe.getId()))added++;
+                    && recipe_unlocks.isUnlocked(player,recipe.getId()) && research_service.canCraft(player,recipe.getId())
+                    && registeredRecipes.add(recipe.getId()))added++;
         if(added>0)setChanged();return added;
     }
     public ContainerData getData() { return data; }
@@ -171,19 +230,21 @@ public final class processing_block_entity extends BlockEntity implements MenuPr
             if (recipeId != null || progress != 0 || status != IDLE) resetProcessing();
             return;
         }
+        ServerPlayer authorizer = currentOperator();
         processing_recipe chosen = level.getRecipeManager().getAllRecipesFor(processing_registry.RECIPE_TYPE.get()).stream()
-                .filter(recipe -> recipe.matchesInputs(inventory) && canProcess(recipe))
+                .filter(recipe -> recipe.matchesInputs(inventory) && authorizer != null && canProcess(authorizer, recipe))
                 .min(Comparator.comparing(recipe -> recipe.getId().toString())).orElse(null);
         if (chosen == null)
         {
             // Preserve a loaded old recipe/progress while waiting for registration; no input is consumed.
             processing_recipe restricted=level.getRecipeManager().getAllRecipesFor(processing_registry.RECIPE_TYPE.get()).stream()
-                    .filter(recipe->recipe.matchesInputs(inventory) && !canProcess(recipe))
+                    .filter(recipe->recipe.matchesInputs(inventory))
                     .min(Comparator.comparing(recipe->recipe.getId().toString())).orElse(null);
             if(restricted!=null)
             {
-                if(status!=UNREGISTERED || total!=restricted.duration())
-                {status=UNREGISTERED;total=restricted.duration();setChanged();}
+                int restrictedStatus = !canProcess(restricted) ? UNREGISTERED : authorizer == null ? OWNER_OFFLINE : LOCKED;
+                if(status!=restrictedStatus || total!=restricted.duration())
+                {status=restrictedStatus;total=restricted.duration();setChanged();}
             }
             else if(recipeId!=null || progress!=0 || status!=IDLE)resetProcessing();
             return;
@@ -224,7 +285,8 @@ public final class processing_block_entity extends BlockEntity implements MenuPr
 
     private boolean outputsFit(processing_recipe recipe)
     {
-        return outputFits(RESULT, recipe.result()) && outputFits(RETURNED, recipe.returned())
+        return (!hasOutputs() || outputOwner == null || outputOwner.equals(operator) && recipe.getId().equals(outputRecipe))
+                && outputFits(RESULT, recipe.result()) && outputFits(RETURNED, recipe.returned())
                 && outputFits(BYPRODUCT, recipe.byproduct());
     }
 
@@ -251,7 +313,9 @@ public final class processing_block_entity extends BlockEntity implements MenuPr
     {
         // 在同一个服务端刻中先重验并模拟全部槽，任何失败均不能发生部分扣料。
         int[] consumed = recipe.allocateInputs(inventory);
-        if (consumed == null || !canProcess(recipe) || !recipe.matchesInputs(inventory) || !outputsFit(recipe)) return;
+        ServerPlayer authorizer = currentOperator();
+        if (consumed == null || authorizer == null || !canProcess(authorizer, recipe)
+                || !recipe.matchesInputs(inventory) || !outputsFit(recipe)) return;
         ItemStack[] next = new ItemStack[8];
         for (int slot = 0; slot < next.length; slot++) next[slot] = inventory.getStackInSlot(slot).copy();
         for (int raw = 0; raw < 3; raw++) next[raw + 1].shrink(consumed[raw]);
@@ -269,6 +333,8 @@ public final class processing_block_entity extends BlockEntity implements MenuPr
             for (int slot = 0; slot < next.length; slot++) inventory.setStackInSlot(slot, next[slot]);
         }
         finally { internalMutation = false; }
+        outputOwner = authorizer.getUUID();
+        outputRecipe = recipe.getId();
         progress = 0;
         toolSnapshot = inventory.getStackInSlot(TOOL).copy();
         if (!recipe.matchesInputs(inventory)) resetProcessing();
@@ -314,6 +380,9 @@ public final class processing_block_entity extends BlockEntity implements MenuPr
         tag.put("Inventory", inventory.serializeNBT());
         ListTag registered=new ListTag();registeredRecipes.stream().sorted().forEach(id->registered.add(StringTag.valueOf(id.toString())));tag.put("RegisteredRecipes",registered);
         tag.putInt("Progress", progress);
+        if (operator != null) tag.putUUID("Operator", operator);
+        if (outputOwner != null) tag.putUUID("OutputOwner", outputOwner);
+        if (outputRecipe != null) tag.putString("OutputRecipe", outputRecipe.toString());
         if (recipeId != null)
         {
             tag.putString("Recipe", recipeId.toString());
@@ -350,6 +419,9 @@ public final class processing_block_entity extends BlockEntity implements MenuPr
         total = 0;
         status = IDLE;
         activeRecipe = null; // 首个服务端刻重新验证配方、工具快照及资源指纹。
+        operator = tag.hasUUID("Operator") ? tag.getUUID("Operator") : null;
+        outputOwner = hasOutputs() && tag.hasUUID("OutputOwner") ? tag.getUUID("OutputOwner") : null;
+        outputRecipe = hasOutputs() ? ResourceLocation.tryParse(tag.getString("OutputRecipe")) : null;
         dropped = false;
     }
 }

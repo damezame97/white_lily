@@ -10,12 +10,19 @@ import net.minecraft.world.inventory.ContainerData;
 import net.minecraft.world.inventory.ContainerLevelAccess;
 import net.minecraft.world.inventory.SimpleContainerData;
 import net.minecraft.world.inventory.Slot;
+import net.minecraft.world.inventory.ClickType;
+import net.minecraft.resources.ResourceLocation;
+import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.Level;
 import net.minecraftforge.items.ItemStackHandler;
 import net.minecraftforge.items.SlotItemHandler;
 
 import javax.annotation.Nullable;
+import java.util.ArrayList;
+import java.util.ArrayDeque;
+import java.util.Arrays;
+import java.util.List;
 
 /** 加工台菜单仅转移物品和同步显示数据；加工始终由服务端方块实体执行。 */
 public final class processing_menu extends AbstractContainerMenu
@@ -29,7 +36,9 @@ public final class processing_menu extends AbstractContainerMenu
     private final ContainerLevelAccess access;
     private final Level level;
     private long lastRegistration=Long.MIN_VALUE;
+    private long lastTransfer=Long.MIN_VALUE;
     @Nullable private final processing_block_entity table;
+    private final Player viewer;
 
     public processing_menu(int id, Inventory inventory, FriendlyByteBuf buffer)
     {
@@ -51,6 +60,7 @@ public final class processing_menu extends AbstractContainerMenu
     {
         super(processing_registry.TABLE_MENU.get(), id);
         level = inventory.player.level();
+        viewer = inventory.player;
         this.table = table;
         access = ContainerLevelAccess.create(level, pos);
         // 打开包可能先于客户端区块实体到达；槽位与数据随后由原版菜单同步填充。
@@ -113,7 +123,7 @@ public final class processing_menu extends AbstractContainerMenu
         });
     }
 
-    private static class MachineSlot extends SlotItemHandler
+    private class MachineSlot extends SlotItemHandler
     {
         @Nullable private final processing_block_entity table;
 
@@ -135,8 +145,38 @@ public final class processing_menu extends AbstractContainerMenu
         {
             super.setChanged();
             // 原版 Shift 会原地修改堆叠；补走槽回调，必要原料被取走时立即清进度。
-            if (table != null) table.getInventory().setStackInSlot(getSlotIndex(), getItem());
+            if (table != null)
+            {
+                if (getSlotIndex() < processing_block_entity.RESULT && !level.isClientSide) table.authorizeInput(viewer);
+                table.getInventory().setStackInSlot(getSlotIndex(), getItem());
+            }
         }
+
+        @Override public boolean mayPlace(ItemStack stack)
+        {
+            return (level.isClientSide || table != null && table.canEditInputs(viewer)) && super.mayPlace(stack);
+        }
+
+        @Override public boolean mayPickup(Player player)
+        {
+            if (level.isClientSide) return true;
+            return table != null && (getSlotIndex() >= processing_block_entity.RESULT
+                    ? table.canTakeOutputs(player) : table.canEditInputs(player));
+        }
+
+        @Override public void onTake(Player player, ItemStack stack)
+        {
+            if (table != null && getSlotIndex() < processing_block_entity.RESULT && !level.isClientSide)
+                table.authorizeInput(player);
+            super.onTake(player, stack);
+        }
+    }
+
+    @Override public void clicked(int slot, int button, ClickType action, Player player)
+    {
+        if (!level.isClientSide && (player != viewer || player.containerMenu != this || !stillValid(player)
+                || slot >= 0 && slot < MACHINE_SLOTS && !getSlot(slot).mayPickup(player))) return;
+        super.clicked(slot, button, action, player);
     }
 
     @Override
@@ -151,10 +191,10 @@ public final class processing_menu extends AbstractContainerMenu
     @Override
     public ItemStack quickMoveStack(Player player, int index)
     {
-        if (!level.isClientSide && !stillValid(player)) return ItemStack.EMPTY;
+        if (!level.isClientSide && (player != viewer || player.containerMenu != this || !stillValid(player))) return ItemStack.EMPTY;
         if (index < 0 || index >= slots.size()) return ItemStack.EMPTY;
         Slot slot = slots.get(index);
-        if (!slot.hasItem()) return ItemStack.EMPTY;
+        if (!slot.hasItem() || !slot.mayPickup(player)) return ItemStack.EMPTY;
 
         ItemStack stack = slot.getItem();
         ItemStack original = stack.copy();
@@ -196,9 +236,167 @@ public final class processing_menu extends AbstractContainerMenu
     {
         if(button!=0 || level.isClientSide || table==null || player.containerMenu!=this || !stillValid(player))return false;
         long tick=level.getGameTime();if(lastRegistration!=Long.MIN_VALUE && tick>=lastRegistration && tick-lastRegistration<10)return false;
+        if (!table.authorizeInput(player)) return false;
         lastRegistration=tick;int added=table.registerLearned(player);
         player.displayClientMessage(net.minecraft.network.chat.Component.translatable("screen.white_lily.processing."+(added==0?"registered_none":"registered_added"),added),false);
         broadcastChanges();return true;
+    }
+
+    public boolean authorizeRecipeTransfer(ServerPlayer player, ResourceLocation id)
+    {
+        return id != null && player == viewer && player.containerMenu == this && !level.isClientSide && stillValid(player)
+                && table != null && level.getRecipeManager().byKey(id).orElse(null) instanceof processing_recipe recipe
+                && table.canProcess(player, recipe) && table.canEditInputs(player);
+    }
+
+    /** Server-authoritative, atomic transfer: recover old inputs, then allocate real inventory stacks. */
+    public boolean fillRecipe(ServerPlayer player, ResourceLocation id, boolean maximum)
+    {
+        if (!authorizeRecipeTransfer(player, id)) return false;
+        long tick = level.getGameTime();
+        if (lastTransfer != Long.MIN_VALUE && tick >= lastTransfer && tick - lastTransfer < 10) return false;
+        lastTransfer = tick;
+        processing_recipe recipe = (processing_recipe) level.getRecipeManager().byKey(id).orElseThrow();
+        List<ItemStack> recovered = new ArrayList<>();
+        for (int index = 0; index < 36; index++) recovered.add(player.getInventory().getItem(index).copy());
+        for (int index = 0; index < processing_block_entity.RESULT; index++)
+            if (!returnStack(recovered, table.getInventory().getStackInSlot(index))) return false;
+
+        int rawCount = recipe.materials().stream().mapToInt(processing_recipe.Material::count).sum();
+        int batches = maximum ? Math.min(64, 192 / rawCount) : 1;
+        if (recipe.container() != null) batches = Math.min(batches, 64 / recipe.container().count());
+        List<ItemStack> stock = groups(recovered);
+        List<Integer> availableSlots = new ArrayList<>();
+        for (ItemStack stack : stock)
+            if (recipe.materials().stream().anyMatch(material -> material.ingredient().test(stack)))
+            {
+                int limit = Math.min(64, stack.getMaxStackSize()), count = stack.getCount();
+                for (int slot = 0; slot < 3 && count > 0; slot++)
+                { int take = Math.min(count, limit); availableSlots.add(take); count -= take; }
+            }
+        availableSlots.sort(java.util.Comparator.reverseOrder());
+        batches = Math.min(batches, availableSlots.stream().limit(3).mapToInt(Integer::intValue).sum() / rawCount);
+        for (processing_recipe.Material material : recipe.materials())
+            batches = Math.min(batches, stock.stream().filter(stack -> material.ingredient().test(stack)).mapToInt(ItemStack::getCount).sum() / material.count());
+        for (int batch = batches; batch >= 1; batch--)
+            for (ItemStack tool : stock)
+            {
+                if (!recipe.tool().test(tool) || !processing_recipe.isSupportedTool(tool.copyWithCount(1), level)) continue;
+                List<ItemStack> afterTool = copies(recovered);
+                removeStack(afterTool, tool, 1);
+                List<ItemStack> containers = recipe.container() == null ? List.of(ItemStack.EMPTY) : groups(afterTool);
+                for (ItemStack container : containers)
+                {
+                    int containerCount = recipe.container() == null ? 0 : recipe.container().count() * batch;
+                    if (containerCount > 0 && (!recipe.container().ingredient().test(container) || container.getCount() < containerCount)) continue;
+                    List<ItemStack> remaining = copies(afterTool);
+                    if (containerCount > 0) removeStack(remaining, container, containerCount);
+                    List<ItemStack> materials = allocateTransfer(recipe, remaining, batch);
+                    if (materials == null) continue;
+                    for (ItemStack material : materials) removeStack(remaining, material, material.getCount());
+                    if (!table.authorizeInput(player)) return false;
+                    for (int index = 0; index < 36; index++) player.getInventory().setItem(index, remaining.get(index));
+                    table.getInventory().setStackInSlot(0, tool.copyWithCount(1));
+                    for (int index = 0; index < 3; index++) table.getInventory().setStackInSlot(index + 1,
+                            index < materials.size() ? materials.get(index) : ItemStack.EMPTY);
+                    table.getInventory().setStackInSlot(4, containerCount > 0 ? container.copyWithCount(containerCount) : ItemStack.EMPTY);
+                    player.getInventory().setChanged();
+                    broadcastChanges();
+                    return true;
+                }
+            }
+        return false;
+    }
+
+    private static List<ItemStack> copies(List<ItemStack> stacks)
+    { return new ArrayList<>(stacks.stream().map(ItemStack::copy).toList()); }
+
+    private static List<ItemStack> groups(List<ItemStack> inventory)
+    {
+        List<ItemStack> groups = new ArrayList<>();
+        for (ItemStack stack : inventory)
+        {
+            if (stack.isEmpty()) continue;
+            ItemStack same = groups.stream().filter(other -> ItemStack.isSameItemSameTags(other, stack)).findFirst().orElse(null);
+            if (same == null) groups.add(stack.copy()); else same.grow(stack.getCount());
+        }
+        return groups;
+    }
+
+    private static void removeStack(List<ItemStack> inventory, ItemStack example, int count)
+    {
+        for (ItemStack stack : inventory)
+            if (count > 0 && ItemStack.isSameItemSameTags(stack, example))
+            { int take = Math.min(count, stack.getCount()); stack.shrink(take); count -= take; }
+        if (count != 0) throw new IllegalStateException("Validated processing transfer lost its inventory allocation");
+    }
+
+    private static boolean returnStack(List<ItemStack> inventory, ItemStack value)
+    {
+        ItemStack remaining = value.copy();
+        for (ItemStack stack : inventory)
+            if (!remaining.isEmpty() && !stack.isEmpty() && ItemStack.isSameItemSameTags(stack, remaining))
+            { int add = Math.min(remaining.getCount(), Math.max(0, stack.getMaxStackSize() - stack.getCount())); stack.grow(add); remaining.shrink(add); }
+        for (int index = 0; index < inventory.size() && !remaining.isEmpty(); index++)
+            if (inventory.get(index).isEmpty())
+            { int add = Math.min(remaining.getCount(), remaining.getMaxStackSize()); inventory.set(index, remaining.copyWithCount(add)); remaining.shrink(add); }
+        return remaining.isEmpty();
+    }
+
+    @Nullable private static List<ItemStack> allocateTransfer(processing_recipe recipe, List<ItemStack> inventory, int batches)
+    {
+        List<ItemStack> candidates = groups(inventory).stream().filter(stack -> recipe.materials().stream()
+                .anyMatch(material -> material.ingredient().test(stack))).toList();
+        for (int first = 0; first < candidates.size(); first++)
+            for (int second = first; second < candidates.size(); second++)
+                for (int third = second; third < candidates.size(); third++)
+                {
+                    int[] picks = {first, second, third};
+                    int[] capacityByGroup = new int[candidates.size()];
+                    for (int pick : picks) capacityByGroup[pick] += Math.min(64, candidates.get(pick).getMaxStackSize());
+                    List<Integer> selected = new ArrayList<>();
+                    for (int group = 0; group < candidates.size(); group++) if (capacityByGroup[group] > 0) selected.add(group);
+                    int sink = selected.size() + recipe.materials().size() + 1;
+                    int[][] flow = new int[sink + 1][sink + 1];
+                    int needed = 0;
+                    for (int group = 0; group < selected.size(); group++)
+                    {
+                        ItemStack stack = candidates.get(selected.get(group));
+                        flow[0][group + 1] = Math.min(stack.getCount(), capacityByGroup[selected.get(group)]);
+                        for (int ingredient = 0; ingredient < recipe.materials().size(); ingredient++)
+                            if (recipe.materials().get(ingredient).ingredient().test(stack)) flow[group + 1][selected.size() + 1 + ingredient] = 192;
+                    }
+                    for (int ingredient = 0; ingredient < recipe.materials().size(); ingredient++)
+                    { int count = recipe.materials().get(ingredient).count() * batches; flow[selected.size() + 1 + ingredient][sink] = count; needed += count; }
+                    int[] initial = new int[selected.size()];
+                    for (int group = 0; group < selected.size(); group++) initial[group] = flow[0][group + 1];
+                    int allocated = 0;
+                    while (allocated < needed)
+                    {
+                        int[] previous = new int[sink + 1]; Arrays.fill(previous, -1); previous[0] = 0;
+                        ArrayDeque<Integer> queue = new ArrayDeque<>(); queue.add(0);
+                        while (!queue.isEmpty() && previous[sink] < 0)
+                        {
+                            int from = queue.remove();
+                            for (int to = 1; to <= sink; to++) if (previous[to] < 0 && flow[from][to] > 0)
+                            { previous[to] = from; queue.add(to); }
+                        }
+                        if (previous[sink] < 0) break;
+                        int amount = needed - allocated;
+                        for (int to = sink; to != 0; to = previous[to]) amount = Math.min(amount, flow[previous[to]][to]);
+                        for (int to = sink; to != 0; to = previous[to]) { flow[previous[to]][to] -= amount; flow[to][previous[to]] += amount; }
+                        allocated += amount;
+                    }
+                    if (allocated != needed) continue;
+                    List<ItemStack> result = new ArrayList<>();
+                    for (int group = 0; group < selected.size(); group++)
+                    {
+                        ItemStack example = candidates.get(selected.get(group)); int count = initial[group] - flow[0][group + 1];
+                        while (count > 0) { int take = Math.min(count, Math.min(64, example.getMaxStackSize())); result.add(example.copyWithCount(take)); count -= take; }
+                    }
+                    return result;
+                }
+        return null;
     }
 
     public int getProgress() { return Math.max(0, data.get(0)); }

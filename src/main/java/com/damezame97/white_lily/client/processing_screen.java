@@ -76,6 +76,8 @@ public final class processing_screen extends AbstractContainerScreen<processing_
             case 1 -> "working";
             case 2 -> "blocked";
             case 3 -> "unregistered";
+            case 4 -> "locked";
+            case 5 -> "owner_offline";
             default -> "idle";
         };
         graphics.drawWordWrap(font, Component.translatable(KEY + "status." + status), 8, 85, 214,

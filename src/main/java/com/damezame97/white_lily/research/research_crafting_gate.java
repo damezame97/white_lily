@@ -46,12 +46,21 @@ public final class research_crafting_gate
     /** 取结果前再次校验，覆盖过期结果和直接Shift转移；不等到已经转移后的onTake。 */
     public static boolean canTake(Slot slot, Player player)
     {
+        // Client-side prediction must not desync from the authoritative server check.
+        if (player != null && player.level().isClientSide) return true;
         if (!(slot instanceof ResearchResultSlotAccess access)) return true;
         if (!(slot.container instanceof RecipeHolder holder)) return true;
-        Recipe<?> used = holder.getRecipeUsed();
-        if (!(used instanceof research_crafting_recipe recipe)) return true;
         if (access.whiteLily$researchPlayer() != player) return false;
-        return recipe.matches(access.whiteLily$researchGrid(), player.level());
+        Recipe<?> used = holder.getRecipeUsed();
+        if (used == null) return true;
+        if (!com.damezame97.white_lily.recipebook.recipe_unlocks.isUnlocked(player, used.getId())) return false;
+        // Research recipes additionally re-check the live grid; normal recipes are identified by the recorded recipe.
+        if (used instanceof research_crafting_recipe recipe)
+        {
+            CraftingContainer grid = access.whiteLily$researchGrid();
+            return grid != null && recipe.matches(grid, player.level());
+        }
+        return true;
     }
 
     /** 完成研究后即刻刷新已摆好的网格，避免必须重新放料或重新登录。 */

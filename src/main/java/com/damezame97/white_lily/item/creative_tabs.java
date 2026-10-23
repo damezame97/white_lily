@@ -89,5 +89,12 @@ public final class creative_tabs
                         output.accept(items.CLEANSING_CHIP_LARGE.get());
                     }).build());
 
+    public static final RegistryObject<CreativeModeTab> RECIPE_BOOKS = CREATIVE_TABS.register("recipe_books", () ->
+            CreativeModeTab.builder().title(Component.translatable("itemGroup.white_lily.recipe_books"))
+                    .icon(() -> new ItemStack(items.GOLDEN_SWORD_RECIPE_BOOK.get()))
+                    .withTabsBefore(MEDICAL_TESTS.getId())
+                    .displayItems((parameters, output) -> output.accept(items.GOLDEN_SWORD_RECIPE_BOOK.get()))
+                    .build());
+
     private creative_tabs() { }
 }

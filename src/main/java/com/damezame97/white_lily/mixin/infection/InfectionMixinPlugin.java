@@ -15,11 +15,14 @@ public final class InfectionMixinPlugin implements IMixinConfigPlugin
     public static final String CHECK = "canBeCastedBy(ILio/redspace/ironsspellbooks/api/spells/CastSource;Lio/redspace/ironsspellbooks/api/magic/MagicData;Lnet/minecraft/world/entity/player/Player;)Lio/redspace/ironsspellbooks/api/spells/CastResult;";
     public static final String PAY = "castSpell(Lnet/minecraft/world/level/Level;ILnet/minecraft/server/level/ServerPlayer;Lio/redspace/ironsspellbooks/api/spells/CastSource;Z)V";
     private static final String COST = "getManaCost(I)I";
+    /** 施法时长钩子的目标方法（1.20.1-3.16.3 已核对）。 */
+    private static final String CAST_TIME = "getEffectiveCastTime(ILnet/minecraft/world/entity/LivingEntity;)I";
 
     /** 三个注入点必须整体存在；未知接口不能只注入显示或扣费的一半。 */
     public static boolean compatible(ClassNode target)
     {
-        return method(target, COST) != null && callsCost(method(target, CHECK)) == 1 && callsCost(method(target, PAY)) == 1;
+        return method(target, COST) != null && method(target, CAST_TIME) != null
+                && callsCost(method(target, CHECK)) == 1 && callsCost(method(target, PAY)) == 1;
     }
     private static MethodNode method(ClassNode node, String signature)
     {
