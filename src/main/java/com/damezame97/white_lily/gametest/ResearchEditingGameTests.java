@@ -84,12 +84,20 @@ public final class ResearchEditingGameTests
         var saved=state(p).save();state(p).load(saved);
         research_events.login(new PlayerEvent.PlayerLoggedInEvent(p));
         yes(h,!research_service.discover(p)&&!state(p).has(FLOWER),"重登和轮询不使用旧花撤销重置");
-        ItemStack old=p.getInventory().removeItemNoUpdate(0);p.containerMenu.setCarried(old);
+        ItemStack old=p.getInventory().removeItemNoUpdate(0);
+        // 主背包内部的移动：数量没变，不算新获得。
+        p.getInventory().setItem(20,old);
         research_service.discover(p);
-        p.inventoryMenu.getSlot(1).set(old);p.containerMenu.setCarried(ItemStack.EMPTY);
+        yes(h,!research_service.discover(p)&&!state(p).has(FLOWER),"主背包格之间的移动不算新获得");
+        // 统一主背包口径后：移出主背包（光标/合成格）就是数量 0，放回去才算「重新拿到」。
+        p.containerMenu.setCarried(old);p.getInventory().setItem(20,ItemStack.EMPTY);
         research_service.discover(p);
+        yes(h,research_service.ownedCount(p,items.CALMING_FLOWER.get())==0,"光标里的不算主背包拥有");
+        p.containerMenu.setCarried(ItemStack.EMPTY);p.inventoryMenu.getSlot(1).set(old);
+        research_service.discover(p);
+        yes(h,research_service.ownedCount(p,items.CALMING_FLOWER.get())==0,"合成格里的不算主背包拥有");
         p.inventoryMenu.getSlot(1).set(ItemStack.EMPTY);p.getInventory().setItem(20,old);
-        yes(h,!research_service.discover(p)&&!state(p).has(FLOWER),"光标、自己的合成格、背包格移动不算新获得");
+        yes(h,research_service.ownedCount(p,items.CALMING_FLOWER.get())==3,"放回主背包后重新计数");
         yes(h,research_service.checkInventory(p)==1&&state(p).has(FLOWER),"主动检查可明确重新完成发现");
         yes(h,!state(p).has(TEA)&&p.getInventory().countItem(items.CALMING_FLOWER.get())==3,"不消耗花、不替代提交条件、不连锁整条研究");
         yes(h,research_service.checkInventory(p)==-1,"短冷却拒绝重复检查");
@@ -109,6 +117,32 @@ public final class ResearchEditingGameTests
         yes(h,!state(p).has(FLOWER),"无关获得不解除重置");
         research_service.acquired(p,items.CALMING_FLOWER.get());
         yes(h,state(p).has(FLOWER),"明确的新获得入口允许重新发现");
+        h.succeed();
+    }
+
+    @GameTest(template="empty")
+    public static void treeHitRadiusStaysBoundedForSingleNodeAndTinySpacing(GameTestHelper h)
+    {
+        double inf=Double.POSITIVE_INFINITY;
+        // 只有一个节点时半间距是无穷大：命中半径必须仍然是有限的节点半径，不能变成「点哪儿都选中」。
+        for(double zoom:new double[]{.1,.25,.5,1,2})
+        {
+            double r=research_tree_view.hitRadius(zoom,inf);
+            yes(h,Double.isFinite(r),"无穷间距下命中半径必须有限，zoom="+zoom);
+            yes(h,r<=research_tree_view.HIT_RADIUS_MAX*research_tree_view.clamp(zoom)*2,"命中半径不得超过上限，zoom="+zoom);
+            yes(h,r>=research_tree_view.HIT_RADIUS_MIN,"命中半径不得低于下限，zoom="+zoom);
+        }
+        yes(h,Math.abs(research_tree_view.hitRadius(1,inf)-research_tree_view.HIT_RADIUS_MAX)<1e-9,"100% 时就是节点本体半径");
+        yes(h,Math.abs(research_tree_view.hitRadius(.1,inf)-research_tree_view.HIT_RADIUS_MIN)<1e-9,"缩小到阈值以下取最小值 2px");
+
+        // 两个节点靠得很近时，命中半径不超过半间距的 0.9 倍，避免可点区域重叠。
+        yes(h,Math.abs(research_tree_view.hitRadius(1,6)-6*.9)<1e-9,"邻近节点限制生效");
+        // 异常/无效间距视为「没有邻近节点」，退回本体半径（不能因为 0 间距把可点区域弄成 0）。
+        yes(h,research_tree_view.hitRadius(1,0)==research_tree_view.HIT_RADIUS_MAX,"零间距退回本体半径");
+        yes(h,research_tree_view.hitRadius(1,-5)==research_tree_view.HIT_RADIUS_MAX,"负间距退回本体半径");
+        yes(h,research_tree_view.hitRadius(Double.NaN,inf)<=research_tree_view.HIT_RADIUS_MAX*2+1e-9,"NaN 缩放不放大半径");
+        // 单节点时用默认半间距，别把无穷大写到下游。
+        yes(h,Double.isFinite(research_tree_view.DEFAULT_SPACING)&&research_tree_view.DEFAULT_SPACING>0,"默认半间距必须是有限正数");
         h.succeed();
     }
 

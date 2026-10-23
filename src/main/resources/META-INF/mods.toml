@@ -12,6 +12,10 @@ version="${mod_version}" #mandatory
 displayName="${mod_name}" #mandatory
 authors="${mod_authors}" #optional
 
+# 模组主页链接（Forge 1.20.1 的 key 叫 modUrl，会读成 IModInfo.getModURL()）。
+# 只能放一条；另一位作者的链接写在下面的 description 里。
+modUrl="https://github.com/damezame97" #optional
+
 # 模组图像：文件放在 src/main/resources 根下，打包后位于 jar 根目录。
 # 512x512、带 alpha 的 PNG。
 logoFile="white_lilymod.png"
@@ -22,6 +26,10 @@ displayTest="MATCH_VERSION" #optional
 
 # 模组描述（在模组列表中显示）
 description='''${mod_description}
+
+Authors / 作者: MAPLE991214 and damezame97
+https://github.com/damezame97
+https://github.com/MAPLE991214
 
 You must install this mod and its dependencies simultaneously on both the client side and the mobile device; otherwise, a crash is inevitable
 （本模组必须同时在客户端与服务端安装其依赖，否则必然崩溃。）'''

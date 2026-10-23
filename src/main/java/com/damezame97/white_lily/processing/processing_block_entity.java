@@ -102,8 +102,29 @@ public final class processing_block_entity extends BlockEntity implements MenuPr
     public Set<ResourceLocation> registeredRecipes() { return Set.copyOf(registeredRecipes); }
     public boolean canProcess(processing_recipe recipe)
     {
-        return recipe.researchNode()==null || registeredRecipes.contains(recipe.getId())
-                && recipe.researchNode().equals(research_catalog.recipeOwners().get(recipe.getId()));
+        return canProcessRecipe(recipe.getId(),recipe.researchNode(),registeredRecipes.contains(recipe.getId()));
+    }
+
+    /**
+     * 一台机器能不能跑某条配方。
+     *
+     * <p>三种情况：</p>
+     * <ol>
+     *     <li>配方没绑节点（{@code recipeOwners} 里没有），也没声明 {@code research}：普通机器配方，放行；</li>
+     *     <li>配方绑了节点：必须声明 {@code research}、与节点的归属一致、且<b>本机已记录</b>；</li>
+     *     <li>其他（绑了节点却没写 {@code research}、或写了 {@code research} 但没被任何节点登记）：
+     *         属于配置写错，<b>一律不放行</b>——以前第 3 种会被 {@code researchNode()==null} 短路成免费配方。</li>
+     * </ol>
+     *
+     * @param researchNode 配方 JSON 里的 {@code research} 字段（可为 null）
+     * @param registered   本机是否已记录这条配方（{@link #registerLearned}）
+     */
+    public static boolean canProcessRecipe(ResourceLocation id,@Nullable ResourceLocation researchNode,boolean registered)
+    {
+        if(id==null)return false;
+        ResourceLocation owner=research_catalog.recipeOwners().get(id);
+        if(owner==null) return researchNode==null;
+        return researchNode!=null && researchNode.equals(owner) && registered;
     }
     /** Records only the actual player's current knowledge, never another machine's records. */
     public int registerLearned(Player player)

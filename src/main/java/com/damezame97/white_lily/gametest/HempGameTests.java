@@ -76,8 +76,11 @@ public final class HempGameTests
     {
         var matches=h.getLevel().getRecipeManager().getAllRecipesFor(RecipeType.CRAFTING).stream()
                 .filter(r->r.matches(menu.grid(),h.getLevel())).toList();
-        yes(h,matches.stream().anyMatch(r->r.getId().equals(id(name))),"最终配方可匹配 "+name);
-        if(matches.size()!=1)System.out.println("HEMP RECIPE CONFLICT "+name+": "+matches.stream().map(Recipe::getId).toList());
+        List<ResourceLocation> ids=matches.stream().map(Recipe::getId).toList();
+        yes(h,ids.contains(id(name)),"最终配方可匹配 "+name);
+        // 冲突信息并进断言消息：原来用 System.out.println 打诊断，但 GameTest 的日志里看不到 stdout，
+        // 而且它只看不改结果；改成断言后失败时能直接在报告里看到冲突列表。
+        yes(h,ids.size()==1,"配方冲突 "+name+"：应当只有一条匹配，实测 "+ids);
         yes(h,menu.getSlot(0).getItem().is(output)&&menu.getSlot(0).getItem().getCount()==count,"真实配方管理器选择正确产出 "+name);
     }
     private static void assertNoOutput(GameTestHelper h,Item output,Item...inputs)
@@ -173,18 +176,24 @@ public final class HempGameTests
     @GameTest(template="empty", timeoutTicks=200)
     public static void farmlandGrowthBoneMealAndWildSoilsAreSeparate(GameTestHelper h)
     {
-        // 土壤、作物、光源均放在3x3x3空结构内，随测试正确清理。
-        var level=h.getLevel();BlockPos pos=h.absolutePos(new BlockPos(1,1,1));
+        var level=h.getLevel();
+        // 不能拿「相对 y=30」当地面位置：empty 结构本身被放在 y=-60 左右的地下，+30 就是 y=-30
+        // 的实心深板岩，天光进不去、无玩家的 GameTest 环境里光照引擎也不会实时扩散，
+        // 亮度永远是 0，等待条件永远不成立。改成「结构所在柱子的地表」——那里是真实的地面，
+        // 生成时就带天光，作物生长所需亮度天然满足。
+        BlockPos origin=h.absolutePos(BlockPos.ZERO);
+        int surfaceY=level.getHeight(
+                net.minecraft.world.level.levelgen.Heightmap.Types.WORLD_SURFACE, origin.getX(), origin.getZ());
+        BlockPos pos=new BlockPos(origin.getX(),surfaceY,origin.getZ());
+        level.setBlock(pos,Blocks.AIR.defaultBlockState(),3);
+        level.setBlock(pos.above(),Blocks.AIR.defaultBlockState(),3);
         level.setBlock(pos.east(),Blocks.GLOWSTONE.defaultBlockState(),3);
-        // GameTestServer不会按50ms等待下一刻；200模拟刻可能早于异步照明完成。
-        // 使用原版照明任务的完成屏障，并继续泵送区块任务；5秒真实时间防止死等。
-        var chunks=level.getChunkSource();var lighting=chunks.getLightEngine();
-        var ready=lighting.lightChunk(level.getChunkAt(pos),false).orTimeout(5,java.util.concurrent.TimeUnit.SECONDS);
-        level.getServer().managedBlock(()->{
-            lighting.tryScheduleUpdate();chunks.pollTask();return ready.isDone();
-        });
-        ready.join();
-        yes(h,level.getRawBrightness(pos,0)>=9,"原版照明完成后作物位置必须实际达到9级光照");
+        // 等待实际照明完成，不把固定等待20刻当作照明已完成的保证。
+        h.startSequence().thenWaitUntil(()->yes(h,level.getRawBrightness(pos,0)>=9,
+                "等待作物测试光源完成照明: b="+level.getRawBrightness(pos,0)
+                        +" sky="+level.canSeeSky(pos)+" pos="+pos
+                        +" state="+level.getBlockState(pos)+" below="+level.getBlockState(pos.below())))
+                .thenExecute(()-> {
             var crop=(hemp_crop)medical_blocks.HEMP_CROP.get();var wild=medical_blocks.WILD_HEMP.get();
             for(Block soil:new Block[]{Blocks.DIRT,Blocks.GRASS_BLOCK,Blocks.COARSE_DIRT,Blocks.PODZOL,Blocks.OAK_LEAVES,Blocks.SAND})
             {
@@ -212,6 +221,7 @@ public final class HempGameTests
             yes(h,!(items.HEMP_STALK.get() instanceof BlockItem)&&items.HEMP_SEEDS.get() instanceof ItemNameBlockItem,"麻秆不是种植物品");
             yes(h,crop.defaultBlockState().getCollisionShape(level,pos).isEmpty(),"作物无实体碰撞");
             level.setBlock(pos,Blocks.AIR.defaultBlockState(),3);level.setBlock(pos.east(),Blocks.AIR.defaultBlockState(),3);h.succeed();
+        });
     }
 
     @GameTest(template="empty")

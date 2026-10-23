@@ -54,15 +54,22 @@ public final class research_service
                 missing.add(recipe);
                 LogUtils.getLogger().error("White Lily research: missing recipe {} (node {})", recipe, research_catalog.recipeOwners().get(recipe));
             }
-            else if(!(actual instanceof ShapelessRecipe) && !(actual instanceof processing_recipe processing && processing.researchNode()!=null && processing.researchNode().equals(research_catalog.recipeOwners().get(recipe))))
+            else if(!(actual instanceof research_crafting_recipe) && !(actual instanceof processing_recipe processing && processing.researchNode()!=null && processing.researchNode().equals(research_catalog.recipeOwners().get(recipe))))
             {
                 missing.add(recipe);
-                LogUtils.getLogger().error("White Lily research: invalid recipe binding {} type {} (node {}); expected shapeless crafting or processing with matching research ID",recipe,actual.getClass().getName(),research_catalog.recipeOwners().get(recipe));
+                LogUtils.getLogger().error("White Lily research: invalid recipe binding {} type {} (node {}); expected research crafting recipe or processing with matching research ID",recipe,actual.getClass().getName(),research_catalog.recipeOwners().get(recipe));
             }
         }
         invalidRecipes = Set.copyOf(missing);
         validatedGeneration = research_catalog.generation(); validatedManager = manager;
     }
+    /** 供测试与调试：当前配置下被判为「绑定无效」的节点配方（不含缺失的配方）。 */
+    public static Set<ResourceLocation> invalidRecipes(Player player)
+    {
+        validateRecipes(player);
+        return invalidRecipes;
+    }
+
     public static Set<ResourceLocation> visible(research_progress data)
     {
         Set<ResourceLocation> open=new HashSet<>();
@@ -110,19 +117,16 @@ public final class research_service
         return completed;
     }
 
-    /** 包含光标与自己的合成网格，纯背包/光标/合成格移动不构成新增获得。 */
+    /**
+     * 只统计<b>主背包</b>里的数量。
+     *
+     * <p>之前这里把「自己的合成格 / 当前打开的合成菜格 / 光标」也算进去，但 {@link #submit}
+     * 只从主背包扣料，于是会出现「界面显示已拥有、提交却缺料」的口径不一致。
+     * 现在统一以主背包为准（与 {@link #count} 同源），移动物品到合成格不再算新增获得。</p>
+     */
     public static int ownedCount(Player player,Item item)
     {
-        int total=count(player,item);
-        var own=player.inventoryMenu.getCraftSlots();
-        for(int i=0;i<own.getContainerSize();i++) if(own.getItem(i).is(item)) total+=own.getItem(i).getCount();
-        if(player.containerMenu instanceof net.minecraft.world.inventory.CraftingMenu menu)
-        {
-            var grid=(net.minecraft.world.inventory.CraftingContainer)menu.getSlot(1).container;
-            for(int i=0;i<grid.getContainerSize();i++) if(grid.getItem(i).is(item)) total+=grid.getItem(i).getCount();
-        }
-        if(player.containerMenu.getCarried().is(item)) total+=player.containerMenu.getCarried().getCount();
-        return total;
+        return count(player,item);
     }
     public static void acquired(Player player,Item item)
     {

@@ -30,6 +30,106 @@ public final class ResearchGameTests
         return null;
     }
 
+    // ==================================================================
+    // 研究门控：节点配方必须真的走 research_crafting_recipe / 带 research 的加工配方
+    // ==================================================================
+
+    /** 每个绑定到节点的配方都必须是被门控的配方类型，且不存在「绑了节点却没过门」的配方。 */
+    @GameTest(template="empty")
+    public static void nodeRecipesAreAlwaysGatedAndNoUnboundBypass(GameTestHelper h)
+    {
+        Player player=h.makeMockPlayer();
+        var manager=h.getLevel().getRecipeManager();
+        Map<ResourceLocation,ResourceLocation> owners=research_catalog.recipeOwners();
+        yes(h,!owners.isEmpty(),"至少应该有一条节点配方，否则这条测试没意义");
+        for(var entry:owners.entrySet())
+        {
+            var recipe=manager.byKey(entry.getKey()).orElse(null);
+            yes(h,recipe!=null,"节点配方必须存在："+entry.getKey());
+            boolean gated=recipe instanceof com.damezame97.white_lily.crafting.research_crafting_recipe
+                    || recipe instanceof com.damezame97.white_lily.processing.processing_recipe processing
+                    && processing.researchNode()!=null;
+            // 关键：普通 crafting_shapeless 也是 ShapelessRecipe，但完全不看研究权限，必须被拦住。
+            yes(h,gated,"节点配方必须是被门控的类型，实测 "+entry.getKey()+" 是 "+recipe.getClass().getName());
+            yes(h,research_service.canCraft(player,entry.getKey())==false,"新玩家不得直接制作节点配方："+entry.getKey());
+        }
+        yes(h,research_service.invalidRecipes(player).isEmpty(),
+                "当前配置不该有「绑定无效」的节点配方，实测 "+research_service.invalidRecipes(player));
+        h.succeed();
+    }
+
+    /** 机器不得放行「绑了节点却没写 research」的配方；普通机器配方仍然能跑。 */
+    @GameTest(template="empty")
+    public static void machineRejectsNodeBoundRecipesWithoutResearchField(GameTestHelper h)
+    {
+        Map<ResourceLocation,ResourceLocation> owners=research_catalog.recipeOwners();
+        yes(h,!owners.isEmpty(),"至少应该有一条节点配方");
+        for(var entry:owners.entrySet())
+        {
+            // 就算机器已经记录过这条配方，缺 research 字段也不放行（防配置写错变成免费配方）。
+            yes(h,!com.damezame97.white_lily.processing.processing_block_entity
+                            .canProcessRecipe(entry.getKey(),null,true),
+                    "绑节点但缺 research 字段必须拒绝："+entry.getKey());
+            // research 字段写错（与节点不一致）同样拒绝。
+            yes(h,!com.damezame97.white_lily.processing.processing_block_entity
+                            .canProcessRecipe(entry.getKey(),id("wrong_node"),true),
+                    "research 与节点不一致必须拒绝："+entry.getKey());
+            // 完全正确的绑定：已记录才放行。
+            yes(h,!com.damezame97.white_lily.processing.processing_block_entity
+                            .canProcessRecipe(entry.getKey(),entry.getValue(),false),
+                    "未记录的节点配方不能跑："+entry.getKey());
+            yes(h,com.damezame97.white_lily.processing.processing_block_entity
+                            .canProcessRecipe(entry.getKey(),entry.getValue(),true),
+                    "已记录且绑定正确就应放行："+entry.getKey());
+        }
+        // 没绑节点、也没写 research：普通机器配方，放行。
+        yes(h,com.damezame97.white_lily.processing.processing_block_entity
+                .canProcessRecipe(id("processing/hemp_fiber"),null,false),"普通机器配方不受研究限制");
+        // 写了 research 但没有任何节点登记：配置错，不放行。
+        yes(h,!com.damezame97.white_lily.processing.processing_block_entity
+                .canProcessRecipe(id("processing/hemp_fiber"),id("bitterleaf"),true),"孤儿 research 字段不放行");
+        h.succeed();
+    }
+
+    /** 已拥有数量与提交扣料统一以主背包为准。 */
+    @GameTest(template="empty")
+    public static void ownedCountAndSubmitUseMainInventoryOnly(GameTestHelper h)
+    {
+        // 注意：这里不能用真合成格做实验。往 InventoryMenu 的合成格里放东西会走原版
+        // CraftingMenu.slotChangedCraftingGrid，那里直接强转 ServerPlayer；而假 ServerPlayer 没有网络通道，
+        // 又会在发结果槽更新时炸（Connection.channel() == null）。所以改用「与 count 同源」来锁住口径。
+        Player player=h.makeMockPlayer();
+        player.getInventory().setItem(7,new ItemStack(items.CALMING_FLOWER.get(),2));
+        yes(h,research_service.ownedCount(player,items.CALMING_FLOWER.get())==2,"主背包里的数要算进去");
+        yes(h,research_service.ownedCount(player,items.CALMING_FLOWER.get())
+                ==research_service.count(player,items.CALMING_FLOWER.get()),"ownedCount 必须与主背包 count 同源");
+
+        // 先把「发现」前提节点做完，否则提交会停在 LOCKED。
+        research_service.discover(player);
+        yes(h,data(player).has(id("calming_flower")),"主背包里有花即可完成发现节点");
+
+        // 挪到光标上就不再算「已拥有」——以前这里会把光标算进去，于是「显示已拥有、提交却缺料」。
+        player.containerMenu.setCarried(new ItemStack(items.CALMING_FLOWER.get(),2));
+        player.getInventory().setItem(7,ItemStack.EMPTY);
+        yes(h,research_service.ownedCount(player,items.CALMING_FLOWER.get())==0,"光标上的不算已拥有");
+        yes(h,research_service.ownedCount(player,items.CALMING_FLOWER.get())
+                ==research_service.count(player,items.CALMING_FLOWER.get()),"光标不影响主背包口径");
+
+        long revision=research_service.revision(player);
+        yes(h,research_service.submit(player,id("calming_flower_tea"),revision)
+                ==research_service.SubmitResult.MISSING_MATERIALS,"光标上的材料不能交研究");
+        yes(h,player.containerMenu.getCarried().getCount()==2,"失败时光标上的不被扣");
+
+        // 放回主背包后两边都能用。
+        player.containerMenu.setCarried(ItemStack.EMPTY);
+        player.getInventory().setItem(7,new ItemStack(items.CALMING_FLOWER.get(),1));
+        player.getInventory().setItem(8,new ItemStack(items.BLANK_LABEL.get(),1));
+        yes(h,research_service.ownedCount(player,items.CALMING_FLOWER.get())==1,"回到主背包后重新计数");
+        yes(h,research_service.submit(player,id("calming_flower_tea"),research_service.revision(player))
+                ==research_service.SubmitResult.COMPLETE,"主背包里的材料可以提交");
+        h.succeed();
+    }
+
     @GameTest(template="empty")
     public static void quickHandbookReopenQueuesOnceWithoutBypassingRequestCooldown(GameTestHelper h)
     {

@@ -79,7 +79,8 @@ public final class InvestigationScreen extends Screen
             names.put(n.id(),font.split(Component.translatable(n.name()),96));
             double distance=Double.POSITIVE_INFINITY;
             for(Node other:nodes) if(other!=n) distance=Math.min(distance,Math.hypot(other.x()-n.x(),other.y()-n.y()));
-            spacing.put(n.id(),distance/2);
+            // 只有一个节点时 distance 是无穷大：不兑成有限值的话，下游的标签宽度和命中半径都会用到它。
+            spacing.put(n.id(),Double.isFinite(distance)?distance/2:research_tree_view.DEFAULT_SPACING);
         }
         view=VIEWS.computeIfAbsent(category+"/"+chapter,k->new research_tree_view());
         if(!view.initialized)
@@ -399,7 +400,8 @@ public final class InvestigationScreen extends Screen
         Node best=null;double bestDistance=Double.POSITIVE_INFINITY;
         for(Node n:nodes)
         {
-            double r=Math.min(view.zoom<.25?3:14*view.zoom,spacing.get(n.id())*view.zoom*.9);
+            // 命中半径统一走 research_tree_view.hitRadius（带上下限），不再直接乘 spacing。
+            double r=research_tree_view.hitRadius(view.zoom,spacing.get(n.id()));
             double distance=Math.hypot(mx-sx(n.x()),my-sy(n.y()));
             if(Math.max(Math.abs(mx-sx(n.x())),Math.abs(my-sy(n.y())))<=r&&distance<bestDistance){best=n;bestDistance=distance;}
         }return best;

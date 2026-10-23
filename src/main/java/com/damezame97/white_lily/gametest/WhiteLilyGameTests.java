@@ -2790,6 +2790,9 @@ public final class WhiteLilyGameTests {
         helper.assertTrue(data != null, "玩家应当挂着 san_state 能力");
 
         // 无甲：50% 转换不该改变数值（无视减免与原本一致）。
+        // 显式把护甲摆零：不依赖假玩家默认值，避免其它测试残留干扰。
+        player.getAttribute(Attributes.ARMOR).setBaseValue(0.0D);
+        player.getAttribute(Attributes.ARMOR_TOUGHNESS).setBaseValue(0.0D);
         data.setInjuryTicks(1000);
         // 注意不能用 damageSources().generic()：原版的 generic 就在 bypasses_armor 里，
         // 根本没有「盔甲可以免掉的那一部分」可以补回来。用怪物近战才是能穿甲的伤害。
@@ -2797,7 +2800,9 @@ public final class WhiteLilyGameTests {
         DamageSource mainSource = helper.getLevel().damageSources().mobAttack(biter);
         LivingHurtEvent event = new LivingHurtEvent(player, mainSource, 10.0F);
         MinecraftForge.EVENT_BUS.post(event);
-        expect(helper, 10.0D, event.getAmount(), "无甲时 50% 转换应当数值不变");
+        expect(helper, 10.0D, event.getAmount(), "无甲时 50% 转换应当数值不变（诊断 armor="
+                + player.getArmorValue() + " raw=" + player.getAttributeValue(Attributes.ARMOR)
+                + " " + san_procedures.DEBUG_LAST_HURT + "）");
         helper.assertTrue(event.getSource() == mainSource, "必须是同一个伤害源（同一次伤害）");
         helper.assertTrue(event.getSource().is(DamageTypes.MOB_ATTACK),
                 "致死播报必须还是主伤害类型：" + event.getSource().getMsgId());
@@ -3100,13 +3105,17 @@ public final class WhiteLilyGameTests {
         helper.assertTrue(existsResource("/data/curios/tags/items/phantom_fragments.json"),
                 "缺少物品标签 data/curios/tags/items/phantom_fragments.json");
 
-        // lang 按需求留空，但键必须在，而且内容必须是空的。
+        // lang 内容以 zh_cn 为准（作者已填「幻像碎片」），这里只保证键存在且不为空；
+        // 之前断言「必须留空」与 zh_cn 的实际内容冲突，按作者要求保留 zh_cn。
         for (String locale : new String[]{"zh_cn", "en_us"}) {
             String value = langValue(locale, curio_slots.PHANTOM_FRAGMENTS_NAME_KEY);
             helper.assertTrue(value != null, locale + " 缺少 " + curio_slots.PHANTOM_FRAGMENTS_NAME_KEY);
-            helper.assertTrue(value.isEmpty(),
-                    locale + " 的栏位名应当留空，实测「" + value + "」");
+            helper.assertTrue(!value.isBlank(),
+                    locale + " 的栏位名不该是空白（空译文会让栏位没有名字），实测「" + value + "」");
         }
+        helper.assertTrue("幻像碎片".equals(langValue("zh_cn", curio_slots.PHANTOM_FRAGMENTS_NAME_KEY)),
+                "zh_cn 的栏位名应当保持作者填的「幻像碎片」，实测「"
+                        + langValue("zh_cn", curio_slots.PHANTOM_FRAGMENTS_NAME_KEY) + "」");
         helper.succeed();
     }
 

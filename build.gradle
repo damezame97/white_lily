@@ -212,6 +212,10 @@ dependencies {
 // When "copyIdeResources" is enabled, this will also run before the game launches in IDE environments.
 // See https://docs.gradle.org/current/dsl/org.gradle.language.jvm.tasks.ProcessResources.html
 tasks.named('processResources', ProcessResources).configure {
+    // 不指定字符集时，Gradle 默认用平台编码（Windows 上是 GBK）读源文件，
+    // 于是 mods.toml 里的中文（注释、作者行、描述）会被写成 U+FFFD 乱码。
+    // 源文件与打包结果统一按 UTF-8。
+    filteringCharset = 'UTF-8'
     var replaceProperties = [
             minecraft_version: minecraft_version, minecraft_version_range: minecraft_version_range,
             forge_version: forge_version, forge_version_range: forge_version_range,
