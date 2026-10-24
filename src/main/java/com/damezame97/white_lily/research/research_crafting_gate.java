@@ -47,8 +47,16 @@ public final class research_crafting_gate
     public static boolean canTake(Slot slot, Player player)
     {
         // Client-side prediction must not desync from the authoritative server check.
-        if (player != null && player.level().isClientSide) return true;
+        if (player != null && player.level().isClientSide) {
+            if(slot instanceof ResearchResultSlotAccess a&&a.whiteLily$researchGrid() instanceof ResearchCraftingContainerAccess g
+                    &&com.damezame97.white_lily.recipebook.crafting_choice.supports(g.whiteLily$researchMenu()))
+                return com.damezame97.white_lily.recipebook.crafting_choice.canTake(g.whiteLily$researchMenu(),player);
+            return true;
+        }
         if (!(slot instanceof ResearchResultSlotAccess access)) return true;
+        if(access.whiteLily$researchGrid() instanceof ResearchCraftingContainerAccess gridAccess
+                &&com.damezame97.white_lily.recipebook.crafting_choice.supports(gridAccess.whiteLily$researchMenu()))
+            return access.whiteLily$researchPlayer()==player&&com.damezame97.white_lily.recipebook.crafting_choice.canTake(gridAccess.whiteLily$researchMenu(),player);
         if (!(slot.container instanceof RecipeHolder holder)) return true;
         if (access.whiteLily$researchPlayer() != player) return false;
         Recipe<?> used = holder.getRecipeUsed();

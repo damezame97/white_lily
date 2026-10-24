@@ -1,0 +1,17 @@
+{
+  "replace": false,
+  "values": [
+    "#minecraft:small_flowers",
+    "minecraft:sunflower",
+    "minecraft:lilac",
+    "minecraft:rose_bush",
+    "minecraft:peony",
+    "minecraft:pitcher_plant",
+    "minecraft:ink_sac",
+    "minecraft:cocoa_beans",
+    "minecraft:lapis_lazuli",
+    "minecraft:bone_meal",
+    "minecraft:cactus",
+    "minecraft:sea_pickle"
+  ]
+}

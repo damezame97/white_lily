@@ -43,6 +43,13 @@ public final class creative_tabs
                         output.accept(items.INVESTIGATION_HANDBOOK.get());
                         output.accept(items.SIMPLE_PROCESSING_TABLE.get());
                         output.accept(items.STONE_MORTAR.get());
+                        output.accept(items.WHITE_SLEEPING_BAG.get());
+                        // 铁器阶段的五件简易工具与现有生计工具同栏，不新建分类。
+                        output.accept(items.MAKESHIFT_IRON_PICKAXE.get());
+                        output.accept(items.MAKESHIFT_IRON_AXE.get());
+                        output.accept(items.MAKESHIFT_IRON_SHOVEL.get());
+                        output.accept(items.MAKESHIFT_IRON_HOE.get());
+                        output.accept(items.MAKESHIFT_IRON_SWORD.get());
                         // 种植物与药草。
                         output.accept(items.HEMP_SEEDS.get());
                         output.accept(items.HEMP_STALK.get());
@@ -79,7 +86,7 @@ public final class creative_tabs
                     .icon(() -> new ItemStack(items.POLLUTION_DETECTOR.get()))
                     .withTabsBefore(MISGUIDED_LIVELIHOOD.getId())
                     .displayItems((parameters, output) -> {
-                        // 展示不依赖权限；使用测试片时仍由服务端检查管理员权限。
+                        // 测试工具持有即可使用，不要求创造模式或管理员权限。
                         output.accept(items.POLLUTION_DETECTOR.get());
                         output.accept(items.POLLUTION_CHIP_SMALL.get());
                         output.accept(items.POLLUTION_CHIP_MEDIUM.get());
@@ -87,13 +94,34 @@ public final class creative_tabs
                         output.accept(items.CLEANSING_CHIP_SMALL.get());
                         output.accept(items.CLEANSING_CHIP_MEDIUM.get());
                         output.accept(items.CLEANSING_CHIP_LARGE.get());
+                        output.accept(items.HEALTH_CAPACITY_PLUS_ONE.get());
+                        output.accept(items.HEALTH_CAPACITY_PLUS_TEN.get());
+                        output.accept(items.HEALTH_CAPACITY_MINUS_ONE.get());
+                        output.accept(items.HEALTH_CAPACITY_MINUS_TEN.get());
+                        output.accept(items.FOOD_CAPACITY_PLUS_ONE.get());
+                        output.accept(items.FOOD_CAPACITY_PLUS_TEN.get());
+                        output.accept(items.FOOD_CAPACITY_MINUS_ONE.get());
+                        output.accept(items.FOOD_CAPACITY_MINUS_TEN.get());
+                        output.accept(items.CAPACITY_DETECTOR.get());
+                        output.accept(items.HEALTH_RESTORE_TEST.get());
+                        output.accept(items.FOOD_RESTORE_TEST.get());
+                        output.accept(items.INSTANT_DAMAGE_TEST.get());
                     }).build());
 
     public static final RegistryObject<CreativeModeTab> RECIPE_BOOKS = CREATIVE_TABS.register("recipe_books", () ->
             CreativeModeTab.builder().title(Component.translatable("itemGroup.white_lily.recipe_books"))
                     .icon(() -> new ItemStack(items.GOLDEN_SWORD_RECIPE_BOOK.get()))
                     .withTabsBefore(MEDICAL_TESTS.getId())
-                    .displayItems((parameters, output) -> output.accept(items.GOLDEN_SWORD_RECIPE_BOOK.get()))
+                    .displayItems((parameters, output) -> {
+                        output.accept(items.GOLDEN_SWORD_RECIPE_BOOK.get());
+                        output.accept(items.BLACKSMITH_TOOLS_NOTES.get());
+                        output.accept(items.BLACKSMITH_ARMOR_NOTES.get());
+                        output.accept(items.SHIELD_RECIPE_BOOK.get());
+                        output.accept(items.STONECUTTER_NOTES.get());
+                        output.accept(items.BLACKSMITH_FORGING_NOTES.get());
+                        output.accept(items.EQUIPMENT_UPGRADE_NOTES.get());
+                        output.accept(items.TRANSPORT_NOTES.get());
+                    })
                     .build());
 
     private creative_tabs() { }

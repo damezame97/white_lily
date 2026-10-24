@@ -110,7 +110,7 @@ public abstract class MixinFoodData
         {
             intervalTicks = happy_mode_food.intervalTicks(
                     player.getAttributeValue(attributes.RECOVERY_INTERVAL.get()),
-                    this.foodLevel < 20);
+                    this.foodLevel < com.damezame97.white_lily.capability.food_capacity.get((FoodData) (Object) this));
             health = (float) player.getAttributeValue(attributes.RESTORE_HEALTH.get());
         }
 

@@ -1,0 +1,6 @@
+{
+  "parent": "minecraft:item/generated",
+  "textures": {
+    "layer0": "white_lily:item/food_capacity_minus_ten"
+  }
+}

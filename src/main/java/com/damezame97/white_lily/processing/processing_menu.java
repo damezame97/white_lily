@@ -2,6 +2,7 @@ package com.damezame97.white_lily.processing;
 
 import com.damezame97.white_lily.block.medical_blocks;
 import net.minecraft.core.BlockPos;
+import com.damezame97.white_lily.recipebook.transfer_reason;
 import net.minecraft.network.FriendlyByteBuf;
 import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.entity.player.Player;
@@ -23,6 +24,7 @@ import java.util.ArrayList;
 import java.util.ArrayDeque;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Set;
 
 /** 加工台菜单仅转移物品和同步显示数据；加工始终由服务端方块实体执行。 */
 public final class processing_menu extends AbstractContainerMenu
@@ -35,6 +37,7 @@ public final class processing_menu extends AbstractContainerMenu
     private final ContainerData data;
     private final ContainerLevelAccess access;
     private final Level level;
+    private final BlockPos position;
     private long lastRegistration=Long.MIN_VALUE;
     private long lastTransfer=Long.MIN_VALUE;
     @Nullable private final processing_block_entity table;
@@ -62,6 +65,7 @@ public final class processing_menu extends AbstractContainerMenu
         level = inventory.player.level();
         viewer = inventory.player;
         this.table = table;
+        position = pos;
         access = ContainerLevelAccess.create(level, pos);
         // 打开包可能先于客户端区块实体到达；槽位与数据随后由原版菜单同步填充。
         ItemStackHandler handler = table == null ? new ItemStackHandler(MACHINE_SLOTS) : table.getInventory();
@@ -109,7 +113,15 @@ public final class processing_menu extends AbstractContainerMenu
             addSlot(new Slot(inventory, column, 34 + column * 18, 188));
         }
         addDataSlots(data);
+        // The browser needs the machine's exact capability set while this menu session lives.
+        if (!level.isClientSide && table != null && viewer instanceof ServerPlayer server)
+            processing_network.send(server, this);
     }
+
+    @Nullable public processing_block_entity table() { return table; }
+    public BlockPos machinePos() { return position; }
+    /** Server-side exact capability IDs: base recipes plus valid recipes registered on this machine. */
+    public Set<ResourceLocation> machineRecipes() { return table == null ? Set.of() : table.contextRecipes(); }
 
     private void addOutputSlot(ItemStackHandler handler, @Nullable processing_block_entity table, int index, int x, int y)
     {
@@ -145,29 +157,22 @@ public final class processing_menu extends AbstractContainerMenu
         {
             super.setChanged();
             // 原版 Shift 会原地修改堆叠；补走槽回调，必要原料被取走时立即清进度。
-            if (table != null)
-            {
-                if (getSlotIndex() < processing_block_entity.RESULT && !level.isClientSide) table.authorizeInput(viewer);
-                table.getInventory().setStackInSlot(getSlotIndex(), getItem());
-            }
+            if (table != null) table.getInventory().setStackInSlot(getSlotIndex(), getItem());
         }
 
         @Override public boolean mayPlace(ItemStack stack)
         {
-            return (level.isClientSide || table != null && table.canEditInputs(viewer)) && super.mayPlace(stack);
+            return (level.isClientSide || table != null && table.canUse(viewer)) && super.mayPlace(stack);
         }
 
         @Override public boolean mayPickup(Player player)
         {
             if (level.isClientSide) return true;
-            return table != null && (getSlotIndex() >= processing_block_entity.RESULT
-                    ? table.canTakeOutputs(player) : table.canEditInputs(player));
+            return table != null && table.canUse(player);
         }
 
         @Override public void onTake(Player player, ItemStack stack)
         {
-            if (table != null && getSlotIndex() < processing_block_entity.RESULT && !level.isClientSide)
-                table.authorizeInput(player);
             super.onTake(player, stack);
         }
     }
@@ -236,7 +241,7 @@ public final class processing_menu extends AbstractContainerMenu
     {
         if(button!=0 || level.isClientSide || table==null || player.containerMenu!=this || !stillValid(player))return false;
         long tick=level.getGameTime();if(lastRegistration!=Long.MIN_VALUE && tick>=lastRegistration && tick-lastRegistration<10)return false;
-        if (!table.authorizeInput(player)) return false;
+        if (!table.canUse(player)) return false;
         lastRegistration=tick;int added=table.registerLearned(player);
         player.displayClientMessage(net.minecraft.network.chat.Component.translatable("screen.white_lily.processing."+(added==0?"registered_none":"registered_added"),added),false);
         broadcastChanges();return true;
@@ -246,26 +251,40 @@ public final class processing_menu extends AbstractContainerMenu
     {
         return id != null && player == viewer && player.containerMenu == this && !level.isClientSide && stillValid(player)
                 && table != null && level.getRecipeManager().byKey(id).orElse(null) instanceof processing_recipe recipe
-                && table.canProcess(player, recipe) && table.canEditInputs(player);
+                && table.canProcess(recipe) && table.canUse(player);
     }
 
     /** Server-authoritative, atomic transfer: recover old inputs, then allocate real inventory stacks. */
     public boolean fillRecipe(ServerPlayer player, ResourceLocation id, boolean maximum)
     {
-        if (!authorizeRecipeTransfer(player, id)) return false;
+        return transferRecipe(player,id,maximum,true)==transfer_reason.OK;
+    }
+
+    /** The same planner supports client prediction and server validation; preview never mutates slots. */
+    public transfer_reason previewRecipe(Player player,ResourceLocation id)
+    { return transferRecipe(player,id,false,false); }
+
+    public transfer_reason transferRecipe(Player player, ResourceLocation id, boolean maximum, boolean commit)
+    {
+        if(player.containerMenu!=this || !player.isAlive() || !stillValid(player))return transfer_reason.MENU_INVALID;
+        if(!(level.getRecipeManager().byKey(id).orElse(null) instanceof processing_recipe recipe))return transfer_reason.DATA_CHANGED;
+        if(!level.isClientSide && (table==null || !table.canUse(player)))return transfer_reason.MENU_INVALID;
+        if(!level.isClientSide && !table.canProcess(recipe))return transfer_reason.UNREGISTERED;
         long tick = level.getGameTime();
-        if (lastTransfer != Long.MIN_VALUE && tick >= lastTransfer && tick - lastTransfer < 10) return false;
-        lastTransfer = tick;
-        processing_recipe recipe = (processing_recipe) level.getRecipeManager().byKey(id).orElseThrow();
+        if (commit && lastTransfer != Long.MIN_VALUE && tick >= lastTransfer && tick - lastTransfer < 10) return transfer_reason.COOLDOWN;
+        if(commit)lastTransfer = tick;
         List<ItemStack> recovered = new ArrayList<>();
         for (int index = 0; index < 36; index++) recovered.add(player.getInventory().getItem(index).copy());
         for (int index = 0; index < processing_block_entity.RESULT; index++)
-            if (!returnStack(recovered, table.getInventory().getStackInSlot(index))) return false;
+            if (!returnStack(recovered, getSlot(index).getItem())) return transfer_reason.INVENTORY_FULL;
 
         int rawCount = recipe.materials().stream().mapToInt(processing_recipe.Material::count).sum();
         int batches = maximum ? Math.min(64, 192 / rawCount) : 1;
         if (recipe.container() != null) batches = Math.min(batches, 64 / recipe.container().count());
         List<ItemStack> stock = groups(recovered);
+        if(stock.stream().noneMatch(tool->recipe.tool().test(tool)&&processing_recipe.isSupportedTool(tool.copyWithCount(1),level)))return transfer_reason.MISSING_TOOL;
+        if(recipe.container()!=null && stock.stream().filter(stack->recipe.container().ingredient().test(stack)).mapToInt(ItemStack::getCount).sum()<recipe.container().count())return transfer_reason.MISSING_CONTAINER;
+        for(var material:recipe.materials())if(stock.stream().filter(stack->material.ingredient().test(stack)).mapToInt(ItemStack::getCount).sum()<material.count())return transfer_reason.MISSING_MATERIALS;
         List<Integer> availableSlots = new ArrayList<>();
         for (ItemStack stack : stock)
             if (recipe.materials().stream().anyMatch(material -> material.ingredient().test(stack)))
@@ -294,7 +313,8 @@ public final class processing_menu extends AbstractContainerMenu
                     List<ItemStack> materials = allocateTransfer(recipe, remaining, batch);
                     if (materials == null) continue;
                     for (ItemStack material : materials) removeStack(remaining, material, material.getCount());
-                    if (!table.authorizeInput(player)) return false;
+                    if(!commit)return transfer_reason.OK;
+                    if (!stillValid(player) || !table.canUse(player) || !table.canProcess(recipe)) return transfer_reason.MENU_INVALID;
                     for (int index = 0; index < 36; index++) player.getInventory().setItem(index, remaining.get(index));
                     table.getInventory().setStackInSlot(0, tool.copyWithCount(1));
                     for (int index = 0; index < 3; index++) table.getInventory().setStackInSlot(index + 1,
@@ -302,10 +322,10 @@ public final class processing_menu extends AbstractContainerMenu
                     table.getInventory().setStackInSlot(4, containerCount > 0 ? container.copyWithCount(containerCount) : ItemStack.EMPTY);
                     player.getInventory().setChanged();
                     broadcastChanges();
-                    return true;
+                    return transfer_reason.OK;
                 }
             }
-        return false;
+        return transfer_reason.ALLOCATION;
     }
 
     private static List<ItemStack> copies(List<ItemStack> stacks)

@@ -18,17 +18,30 @@ import java.util.List;
 @MethodsReturnNonnullByDefault
 public class basic_material_item extends Item
 {
+    private final boolean showDescriptions;
     private final int usageLines;
 
     public basic_material_item()
     {
-        this(new Item.Properties().stacksTo(64), 0);
+        this(new Item.Properties().stacksTo(64), true, 0);
     }
 
     protected basic_material_item(Item.Properties properties, int usageLines)
     {
+        this(properties, true, usageLines);
+    }
+
+    public basic_material_item(Item.Properties properties, boolean showDescriptions, int usageLines)
+    {
         super(properties);
+        this.showDescriptions = showDescriptions;
         this.usageLines = usageLines;
+    }
+
+    /** A plain material with neither atmosphere text nor functional details to fold. */
+    public static basic_material_item noDetails()
+    {
+        return new basic_material_item(new Item.Properties().stacksTo(64), false, 0);
     }
 
     @Override
@@ -40,24 +53,32 @@ public class basic_material_item extends Item
 
     public void appendDescription(List<Component> tooltip, boolean expanded)
     {
-        appendDescription(tooltip, expanded, getDescriptionId(), usageLines);
+        appendDescription(tooltip, expanded, getDescriptionId(), showDescriptions, usageLines);
     }
 
     public static void appendDescription(List<Component> tooltip, boolean expanded, String key, int usageLines)
     {
-        if (!expanded)
+        appendDescription(tooltip, expanded, key, true, usageLines);
+    }
+
+    public static void appendDescription(List<Component> tooltip, boolean expanded, String key,
+                                         boolean showDescriptions, int usageLines)
+    {
+        if (!showDescriptions && usageLines <= 0) return;
+        detail_tooltip.appendDetails(tooltip, expanded, lines ->
         {
-            tooltip.add(detail_tooltip.hint());
-            return;
-        }
-        for (int line = 1; line <= 3; line++)
-        {
-            tooltip.add(Component.translatable(key + ".description." + line)
-                    .withStyle(ChatFormatting.GRAY));
-        }
-        for (int line = 1; line <= usageLines; line++)
-        {
-            tooltip.add(Component.translatable(key + ".usage." + line).withStyle(ChatFormatting.GRAY));
-        }
+            if (showDescriptions)
+            {
+                for (int line = 1; line <= 3; line++)
+                {
+                    lines.add(Component.translatable(key + ".description." + line)
+                            .withStyle(ChatFormatting.GRAY));
+                }
+            }
+            for (int line = 1; line <= usageLines; line++)
+            {
+                lines.add(Component.translatable(key + ".usage." + line).withStyle(ChatFormatting.GRAY));
+            }
+        });
     }
 }

@@ -19,6 +19,8 @@ public final class prescription_recipes
             SERIALIZERS.register("simple_processing", com.damezame97.white_lily.processing.processing_recipe.Serializer::new);
     public static final RegistryObject<RecipeSerializer<research_crafting_recipe>> RESEARCH_CRAFTING =
             SERIALIZERS.register("research_crafting", research_crafting_recipe.Serializer::new);
+    public static final RegistryObject<RecipeSerializer<template_copy_recipe>> TEMPLATE_COPY =
+            SERIALIZERS.register("template_copy", template_copy_recipe.Serializer::new);
 
     private prescription_recipes()
     {

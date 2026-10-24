@@ -24,18 +24,15 @@ public final class recipe_menu_gate {
         if(slot.container instanceof Inventory || !slot.hasItem()) return true;
         if(slot instanceof ResearchResultSlotAccess)
             return com.damezame97.white_lily.research.research_crafting_gate.canTake(slot,player);
-        if(menu instanceof AbstractFurnaceMenu && slot.index==2) {
-            if(slot.container instanceof net.minecraft.world.level.block.entity.BlockEntity machine) {
-                ResourceLocation last=ResourceLocation.tryParse(machine.getPersistentData().getString("white_lily_last_recipe"));
-                if(last!=null) return recipe_unlocks.isUnlocked(player,last);
-            }
-            return player.level().getRecipeManager().getRecipes().stream()
-                .filter(recipe->recipe instanceof net.minecraft.world.item.crafting.AbstractCookingRecipe)
-                .filter(recipe->net.minecraft.world.item.ItemStack.isSameItemSameTags(recipe.getResultItem(player.level().registryAccess()),slot.getItem()))
-                .anyMatch(recipe->recipe_unlocks.isUnlocked(player,recipe.getId()));
-        }
+        // Furnace-family results are intentionally free to take: cooking still requires the
+        // machine owner's recipe permission, but an already smelted result is shared loot.
         if(slot.container instanceof ResultContainer && slot.container instanceof RecipeHolder holder) {
             Recipe<?> recipe=holder.getRecipeUsed();
+            if(menu instanceof StonecutterMenu && slot.index==StonecutterMenu.RESULT_SLOT) {
+                // Device permission and the concrete stonecutting recipe are both mandatory.
+                if(!recipe_unlocks.isUnlocked(player,operation("stonecutter"))) return false;
+                return recipe==null || recipe_unlocks.isUnlocked(player,recipe.getId());
+            }
             if(recipe!=null) return recipe_unlocks.isUnlocked(player,recipe.getId());
         }
         String operation=operationFor(menu,slot);

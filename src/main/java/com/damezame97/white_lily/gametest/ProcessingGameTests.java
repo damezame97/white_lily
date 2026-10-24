@@ -45,7 +45,7 @@ public final class ProcessingGameTests
         var researcher=ProcessingTestPlayers.create(h);
         var progress=com.damezame97.white_lily.research.research_capability.get(researcher).orElseThrow();
         progress.complete(id("bitterleaf_paste"));progress.complete(id("yarrow_dressing"));
-        table.registerLearned(researcher);table.authorizeInput(researcher);
+        table.registerLearned(researcher);
         for (var recipe : h.getLevel().getRecipeManager().getAllRecipesFor(processing_registry.RECIPE_TYPE.get()))
             com.damezame97.white_lily.recipebook.recipe_unlocks.unlock(researcher,recipe.getId());
         return table;

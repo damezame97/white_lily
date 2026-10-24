@@ -15,8 +15,4 @@ public abstract class MixinFurnaceRecipeGate {
     private void whiteLily$lockedCooking(RegistryAccess registry,Recipe<?> recipe,NonNullList<ItemStack> stacks,int max,CallbackInfoReturnable<Boolean> callback) {
         if(recipe!=null && !recipe_machine_owner.allowed((AbstractFurnaceBlockEntity)(Object)this,recipe.getId())) callback.setReturnValue(false);
     }
-    @Inject(method="setRecipeUsed",at=@At("HEAD"))
-    private void whiteLily$rememberCooking(Recipe<?> recipe,CallbackInfo callback) {
-        if(recipe!=null) ((AbstractFurnaceBlockEntity)(Object)this).getPersistentData().putString("white_lily_last_recipe",recipe.getId().toString());
-    }
 }

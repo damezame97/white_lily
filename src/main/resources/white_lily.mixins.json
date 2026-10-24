@@ -8,6 +8,7 @@
   "mixins": [
     "MixinDamageSource",
     "MixinFoodData",
+    "MixinFoodCapacity",
     "MixinFriendlyByteBuf",
     "MixinInventory",
     "MixinItemStack",
@@ -30,12 +31,16 @@
     "recipebook.MixinBrewingRecipeGate",
     "recipebook.MixinVineryBarrelGate",
     "recipebook.MixinVineryPressGate",
-    "recipebook.MixinInscriptionCommitGate"
+    "recipebook.MixinInscriptionCommitGate",
+    "recipebook.MixinCraftingChoiceRemainder",
+    "recipebook.MixinCraftingChoiceAction",
+    "recipebook.MixinCraftingChoicePlacement"
   ],
   "client": [
     "client.MixinTitleScreen",
     "client.MixinInfectionBlindness",
-    "client.MixinRecipeBrowserContainer"
+    "client.MixinRecipeBrowserContainer",
+    "client.MixinRecipeBrowserTooltip"
   ],
   "injectors": {
     "defaultRequire": 1

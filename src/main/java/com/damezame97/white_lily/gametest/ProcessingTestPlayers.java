@@ -28,20 +28,38 @@ final class ProcessingTestPlayers implements AutoCloseable
     }
 
     static ServerPlayer create(GameTestHelper helper)
-    { return create(helper, UUID.randomUUID()); }
+    { return create(helper, UUID.randomUUID(), true); }
+
+    static ServerPlayer create(GameTestHelper helper, boolean permissions)
+    { return create(helper, UUID.randomUUID(), permissions); }
 
     static ServerPlayer create(GameTestHelper helper, UUID id)
+    { return create(helper, id, true); }
+
+    static ServerPlayer create(GameTestHelper helper, UUID id, boolean permissions)
+    {
+        ServerPlayer player = createWithoutInitialize(helper,id,permissions);
+        recipe_unlocks.initialize(player);
+        return player;
+    }
+
+    static ServerPlayer createWithoutInitialize(GameTestHelper helper)
+    { return createWithoutInitialize(helper,UUID.randomUUID(),true); }
+
+    static ServerPlayer createWithoutInitialize(GameTestHelper helper, UUID id, boolean permissions)
     {
         ServerPlayer player = new ServerPlayer(helper.getLevel().getServer(), helper.getLevel(),
                 new GameProfile(id, "ProcessingQA"))
-        { @Override public boolean hasPermissions(int permission) { return permission <= 2; } };
+        {
+            @Override public boolean hasPermissions(int permission) { return permissions && permission <= 2; }
+            @Override public int getPermissionLevel() { return permissions ? 2 : 0; }
+        };
         player.connection = new ServerGamePacketListenerImpl(player.server, new Connection(PacketFlow.SERVERBOUND), player)
         {
             @Override public void send(Packet<?> packet) { }
             @Override public void send(Packet<?> packet, PacketSendListener listener) { }
         };
         track(player);
-        recipe_unlocks.initialize(player);
         return player;
     }
 

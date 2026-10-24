@@ -122,24 +122,22 @@ public final class ResearchRoutesMachineGameTests
         }
     }
 
-    @GameTest(template="empty") public static void registrationRemainsButPersonalResetPausesAutomaticProcessing(GameTestHelper h)
+    @GameTest(template="empty") public static void registrationRemainsAndMachineKeepsRunningAfterPersonalReset(GameTestHelper h)
     {
         try (ProcessingTestPlayers scope = new ProcessingTestPlayers(h))
         {
             var t=table(h);fill(t,items.BITTERLEAF.get(),6);tick(t,150);
             yes(h,t.getData().get(2)==processing_block_entity.UNREGISTERED&&t.getData().get(0)==0&&t.getInventory().getStackInSlot(1).getCount()==6&&t.getInventory().getStackInSlot(0).getDamageValue()==0&&t.getInventory().getStackInSlot(5).isEmpty(),"unregistered no processing side effects");
             Fixture a=new Fixture(h);learn(a,"bitterleaf","bitterleaf_paste");yes(h,t.registerLearned(a)==1,"register without moving inputs");
-            t.authorizeInput(a);
+            tick(t,200);yes(h,t.getInventory().getStackInSlot(5).getCount()==4&&t.getInventory().getStackInSlot(0).getDamageValue()==2,"registered machine runs two batches without a live operator");
             research_service.setEditing(a,true,research_service.revision(a));research_service.edit(a,id("bitterleaf"),false,research_service.revision(a));
-            tick(t,200);yes(h,t.getInventory().getStackInSlot(5).isEmpty()&&t.getInventory().getStackInSlot(0).getDamageValue()==0
-                    &&t.getData().get(2)==processing_block_entity.LOCKED,"personal reset immediately pauses registered machine without consuming inputs");
-            yes(h,!state(a).has(id("bitterleaf_paste"))&&t.registeredRecipes().size()==1,"machine registration persists but does not replace personal progress");
+            yes(h,!state(a).has(id("bitterleaf_paste"))&&t.registeredRecipes().size()==1,"machine registration persists after personal reset");
+            fill(t,items.BITTERLEAF.get(),3);tick(t,100);
+            yes(h,t.getInventory().getStackInSlot(5).getCount()==6,"registered machine keeps producing after the registrant's personal reset");
             var fresh=new processing_block_entity(t.getBlockPos(),t.getBlockState());fresh.setLevel(h.getLevel());
-            yes(h,fresh.registerLearned(a)==0,"reset player cannot teach new machine");
-            learn(a,"bitterleaf","bitterleaf_paste");tick(t,200);
-            yes(h,t.getInventory().getStackInSlot(5).getCount()==4&&t.getInventory().getStackInSlot(0).getDamageValue()==2,"relearned recipe resumes two automatic batches while owner is online");
-            fresh.authorizeInput(a);fill(fresh,items.HEMP_STALK.get(),1);tick(fresh,40);
-            yes(h,fresh.getInventory().getStackInSlot(5).is(items.PLANT_FIBER.get()),"initially unlocked fiber needs its own live processing player");h.succeed();
+            yes(h,fresh.registerLearned(a)==0,"reset player cannot teach a new machine");
+            fill(fresh,items.HEMP_STALK.get(),1);tick(fresh,40);
+            yes(h,fresh.getInventory().getStackInSlot(5).is(items.PLANT_FIBER.get()),"base recipe runs with no registration and no player");h.succeed();
         }
     }
 
@@ -147,7 +145,7 @@ public final class ResearchRoutesMachineGameTests
     {
         try (ProcessingTestPlayers scope = new ProcessingTestPlayers(h))
         {
-            var t=table(h);var p=new Fixture(h);learn(p,"bitterleaf_paste");t.registerLearned(p);t.authorizeInput(p);fill(t,items.BITTERLEAF.get(),3);tick(t,37);
+            var t=table(h);var p=new Fixture(h);learn(p,"bitterleaf_paste");t.registerLearned(p);fill(t,items.BITTERLEAF.get(),3);tick(t,37);
             CompoundTag saved=t.saveWithFullMetadata();var restored=restore(t,saved);tick(restored,63);
             yes(h,restored.getInventory().getStackInSlot(5).getCount()==2&&restored.registeredRecipes().size()==1,"saved records + remaining progress resume");
             var legacyTag=saved.copy();legacyTag.remove("RegisteredRecipes");var legacy=restore(t,legacyTag);tick(legacy,200);
@@ -162,7 +160,7 @@ public final class ResearchRoutesMachineGameTests
         {
             var t=table(h);fill(t,items.BITTERLEAF.get(),3);CompoundTag saved=t.saveWithFullMetadata();
             ListTag forged=new ListTag();forged.add(StringTag.valueOf("bad id!"));forged.add(StringTag.valueOf(id("calming_flower_tea").toString()));
-            forged.add(StringTag.valueOf(id("bitterleaf_paste").toString()));saved.put("RegisteredRecipes",forged);
+            saved.put("RegisteredRecipes",forged);
             var loaded=restore(t,saved);tick(loaded,100);
             yes(h,loaded.getInventory().getStackInSlot(5).isEmpty()&&loaded.getData().get(0)==0,"invalid IDs and non-processing/node IDs cannot authorize");
             Fixture p=new Fixture(h);learn(p,"bitterleaf_paste");p.setPos(t.getBlockPos().getX()+.5,t.getBlockPos().getY(),t.getBlockPos().getZ()+.5);
@@ -199,9 +197,9 @@ public final class ResearchRoutesMachineGameTests
             try{
                 var all=new ArrayList<>(originals);all.add(allowed);manager.replaceRecipes(all);var t=table(h);
                 var authorizer=ProcessingTestPlayers.create(h);com.damezame97.white_lily.recipebook.recipe_unlocks.unlock(authorizer,allowed.getId());
-                t.authorizeInput(authorizer);fill(t,items.BITTERLEAF.get(),3);tick(t,2);
+                fill(t,items.BITTERLEAF.get(),3);tick(t,2);
                 yes(h,t.getInventory().getStackInSlot(5).is(items.PLANT_FIBER.get()),"restricted lexically earlier recipe does not block allowed match");
-                manager.replaceRecipes(originals);t=table(h);var p=new Fixture(h);learn(p,"bitterleaf_paste");t.registerLearned(p);t.authorizeInput(p);fill(t,items.BITTERLEAF.get(),3);tick(t,20);
+                manager.replaceRecipes(originals);t=table(h);var p=new Fixture(h);learn(p,"bitterleaf_paste");t.registerLearned(p);fill(t,items.BITTERLEAF.get(),3);tick(t,20);
                 manager.replaceRecipes(originals.stream().filter(r->!r.getId().equals(source.getId())).toList());tick(t,100);
                 yes(h,t.getInventory().getStackInSlot(5).isEmpty()&&t.getData().get(0)==0,"removed recipe does not continue from saved permission");
                 var buf=new FriendlyByteBuf(io.netty.buffer.Unpooled.buffer());try{prescription_recipes.PROCESSING.get().toNetwork(buf,source);yes(h,prescription_recipes.PROCESSING.get().fromNetwork(source.getId(),buf).researchNode().equals(id("bitterleaf_paste")),"research binding network round trip");}finally{buf.release();}
@@ -213,7 +211,7 @@ public final class ResearchRoutesMachineGameTests
     {
         try (ProcessingTestPlayers scope = new ProcessingTestPlayers(h))
         {
-            var t=table(h);var p=new Fixture(h);learn(p,"bitterleaf_paste");t.registerLearned(p);t.authorizeInput(p);fill(t,items.BITTERLEAF.get(),3);
+            var t=table(h);var p=new Fixture(h);learn(p,"bitterleaf_paste");t.registerLearned(p);fill(t,items.BITTERLEAF.get(),3);
             var area=new AABB(t.getBlockPos()).inflate(.5);int before=h.getLevel().getEntitiesOfClass(net.minecraft.world.entity.item.ItemEntity.class,area).stream().mapToInt(e->e.getItem().getCount()).sum();
             h.getLevel().destroyBlock(t.getBlockPos(),true);t.dropContents();
             int total=0,tables=0;for(var entity:h.getLevel().getEntitiesOfClass(net.minecraft.world.entity.item.ItemEntity.class,area))
@@ -229,3 +227,4 @@ public final class ResearchRoutesMachineGameTests
         @Override public boolean hasPermissions(int level){return level<=2;}
     }
 }
+

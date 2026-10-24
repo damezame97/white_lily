@@ -42,6 +42,25 @@ public final class items
     public static final DeferredRegister<Item> ITEMS =
             DeferredRegister.create(ForgeRegistries.ITEMS, white_lily.MODID);
 
+    public static final RegistryObject<Item> WHITE_SLEEPING_BAG = ITEMS.register("white_sleeping_bag", () ->
+            new net.minecraft.world.item.BedItem(com.damezame97.white_lily.block.medical_blocks.WHITE_SLEEPING_BAG.get(), new Item.Properties().stacksTo(1)));
+
+    public static final RegistryObject<Item> HEALTH_CAPACITY_PLUS_ONE = ITEMS.register("health_capacity_plus_one", () -> new capacity_test_item(true, 1));
+    public static final RegistryObject<Item> HEALTH_CAPACITY_PLUS_TEN = ITEMS.register("health_capacity_plus_ten", () -> new capacity_test_item(true, 10));
+    public static final RegistryObject<Item> HEALTH_CAPACITY_MINUS_ONE = ITEMS.register("health_capacity_minus_one", () -> new capacity_test_item(true, -1));
+    public static final RegistryObject<Item> HEALTH_CAPACITY_MINUS_TEN = ITEMS.register("health_capacity_minus_ten", () -> new capacity_test_item(true, -10));
+    public static final RegistryObject<Item> FOOD_CAPACITY_PLUS_ONE = ITEMS.register("food_capacity_plus_one", () -> new capacity_test_item(false, 1));
+    public static final RegistryObject<Item> FOOD_CAPACITY_PLUS_TEN = ITEMS.register("food_capacity_plus_ten", () -> new capacity_test_item(false, 10));
+    public static final RegistryObject<Item> FOOD_CAPACITY_MINUS_ONE = ITEMS.register("food_capacity_minus_one", () -> new capacity_test_item(false, -1));
+    public static final RegistryObject<Item> FOOD_CAPACITY_MINUS_TEN = ITEMS.register("food_capacity_minus_ten", () -> new capacity_test_item(false, -10));
+    public static final RegistryObject<Item> CAPACITY_DETECTOR = ITEMS.register("capacity_detector", () -> new capacity_test_item(true, 0));
+    public static final RegistryObject<Item> HEALTH_RESTORE_TEST = ITEMS.register("health_restore_test",
+            () -> new state_test_item(state_test_item.Action.HEALTH));
+    public static final RegistryObject<Item> FOOD_RESTORE_TEST = ITEMS.register("food_restore_test",
+            () -> new state_test_item(state_test_item.Action.FOOD));
+    public static final RegistryObject<Item> INSTANT_DAMAGE_TEST = ITEMS.register("instant_damage_test",
+            () -> new state_test_item(state_test_item.Action.DAMAGE));
+
     /**
      * 「歧途“珍馐”」物品栏的图标物品。
      *
@@ -63,6 +82,38 @@ public final class items
     public static final RegistryObject<Item> GOLDEN_SWORD_RECIPE_BOOK =
             ITEMS.register("golden_sword_recipe_book", () -> new recipe_unlock_book(
                     net.minecraft.resources.ResourceLocation.fromNamespaceAndPath("minecraft", "golden_sword")));
+
+    /** Five independent makeshift iron tools; each reads its own real iron counterpart's durability. */
+    public static final RegistryObject<Item> MAKESHIFT_IRON_PICKAXE =
+            ITEMS.register(makeshift_iron_pickaxe.NAME, () -> new makeshift_iron_pickaxe(net.minecraft.world.item.Items.IRON_PICKAXE));
+    public static final RegistryObject<Item> MAKESHIFT_IRON_AXE =
+            ITEMS.register(makeshift_iron_axe.NAME, () -> new makeshift_iron_axe(net.minecraft.world.item.Items.IRON_AXE));
+    public static final RegistryObject<Item> MAKESHIFT_IRON_SHOVEL =
+            ITEMS.register(makeshift_iron_shovel.NAME, () -> new makeshift_iron_shovel(net.minecraft.world.item.Items.IRON_SHOVEL));
+    public static final RegistryObject<Item> MAKESHIFT_IRON_HOE =
+            ITEMS.register(makeshift_iron_hoe.NAME, () -> new makeshift_iron_hoe(net.minecraft.world.item.Items.IRON_HOE));
+    public static final RegistryObject<Item> MAKESHIFT_IRON_SWORD =
+            ITEMS.register(makeshift_iron_sword.NAME, () -> new makeshift_iron_sword(net.minecraft.world.item.Items.IRON_SWORD));
+
+    /** Iron-stage knowledge books. Random books store only their server-side pool. */
+    public static final RegistryObject<Item> BLACKSMITH_TOOLS_NOTES =
+            ITEMS.register("blacksmith_tools_notes", () -> recipe_unlock_book.random(
+                    "tooltip.white_lily.recipe_book.random.tools",
+                    mc("iron_pickaxe"), mc("iron_axe"), mc("iron_shovel"), mc("iron_hoe"), mc("iron_sword")));
+    public static final RegistryObject<Item> BLACKSMITH_ARMOR_NOTES =
+            ITEMS.register("blacksmith_armor_notes", () -> recipe_unlock_book.random(
+                    "tooltip.white_lily.recipe_book.random.armor",
+                    mc("iron_helmet"), mc("iron_chestplate"), mc("iron_leggings"), mc("iron_boots")));
+    public static final RegistryObject<Item> SHIELD_RECIPE_BOOK =
+            ITEMS.register("shield_recipe_book", () -> recipe_unlock_book.copyable(mc("shield")));
+    public static final RegistryObject<Item> STONECUTTER_NOTES =
+            ITEMS.register("stonecutter_notes", () -> recipe_unlock_book.copyable(mc("stonecutter"), operation("stonecutter")));
+    public static final RegistryObject<Item> BLACKSMITH_FORGING_NOTES =
+            ITEMS.register("blacksmith_forging_notes", () -> recipe_unlock_book.copyable(mc("anvil"), operation("anvil")));
+    public static final RegistryObject<Item> EQUIPMENT_UPGRADE_NOTES =
+            ITEMS.register("equipment_upgrade_notes", () -> recipe_unlock_book.copyable(mc("smithing_table")));
+    public static final RegistryObject<Item> TRANSPORT_NOTES =
+            ITEMS.register("transport_notes", () -> recipe_unlock_book.copyable(mc("rail"), mc("minecart")));
 
     /**
      * 「魔力苹果」——见 {@link magic_apple}。
@@ -89,33 +140,35 @@ public final class items
             ITEMS.register(stored_suffering.NAME, stored_suffering::new);
 
     /** 基础制作材料，按 Shift 查看简介。 */
+    // 以下基础材料只保留物品本身，不再提供氛围简介或无意义的 Shift 提示。
     public static final RegistryObject<Item> COARSE_CLOTH =
-            ITEMS.register("coarse_cloth", basic_material_item::new);
+            ITEMS.register("coarse_cloth", basic_material_item::noDetails);
     public static final RegistryObject<Item> THIN_CLOTH_STRIP =
-            ITEMS.register("thin_cloth_strip", basic_material_item::new);
+            ITEMS.register("thin_cloth_strip", basic_material_item::noDetails);
     public static final RegistryObject<Item> CORK_STOPPER =
-            ITEMS.register("cork_stopper", basic_material_item::new);
+            ITEMS.register("cork_stopper", basic_material_item::noDetails);
     public static final RegistryObject<Item> BEESWAX_BLOCK =
-            ITEMS.register("beeswax_block", basic_material_item::new);
+            ITEMS.register("beeswax_block", basic_material_item::noDetails);
     public static final RegistryObject<Item> CHARCOAL_POWDER =
-            ITEMS.register("charcoal_powder", basic_material_item::new);
+            ITEMS.register("charcoal_powder", basic_material_item::noDetails);
     public static final RegistryObject<Item> BLANK_LABEL =
-            ITEMS.register("blank_label", basic_material_item::new);
+            ITEMS.register("blank_label", basic_material_item::noDetails);
 
     public static final RegistryObject<Item> HEMP_SEEDS = ITEMS.register("hemp_seeds", hemp_seeds::new);
     public static final RegistryObject<Item> HEMP_STALK = ITEMS.register("hemp_stalk", basic_material_item::new);
 
-    public static final RegistryObject<Item> PLANT_FIBER = ITEMS.register("plant_fiber", basic_material_item::new);
-    public static final RegistryObject<Item> WOODEN_TRAY = ITEMS.register("wooden_tray", basic_material_item::new);
+    // 以下加工材料只保留物品本身；研钵与布包仍保留各自的功能说明。
+    public static final RegistryObject<Item> PLANT_FIBER = ITEMS.register("plant_fiber", basic_material_item::noDetails);
+    public static final RegistryObject<Item> WOODEN_TRAY = ITEMS.register("wooden_tray", basic_material_item::noDetails);
     public static final RegistryObject<Item> STONE_MORTAR = ITEMS.register("stone_mortar", () ->
-            new basic_material_item(new Item.Properties().durability(128), 2));
-    public static final RegistryObject<Item> CLAY_BOWL = ITEMS.register("clay_bowl", basic_material_item::new);
-    public static final RegistryObject<Item> GLASS_TUBE = ITEMS.register("glass_tube", basic_material_item::new);
-    public static final RegistryObject<Item> FILTER_PAPER = ITEMS.register("filter_paper", basic_material_item::new);
-    public static final RegistryObject<Item> DESICCANT_PACKET = ITEMS.register("desiccant_packet", basic_material_item::new);
-    public static final RegistryObject<Item> HERBAL_RESIDUE = ITEMS.register("herbal_residue", basic_material_item::new);
+            new basic_material_item(new Item.Properties().durability(128), false, 2));
+    public static final RegistryObject<Item> CLAY_BOWL = ITEMS.register("clay_bowl", basic_material_item::noDetails);
+    public static final RegistryObject<Item> GLASS_TUBE = ITEMS.register("glass_tube", basic_material_item::noDetails);
+    public static final RegistryObject<Item> FILTER_PAPER = ITEMS.register("filter_paper", basic_material_item::noDetails);
+    public static final RegistryObject<Item> DESICCANT_PACKET = ITEMS.register("desiccant_packet", basic_material_item::noDetails);
+    public static final RegistryObject<Item> HERBAL_RESIDUE = ITEMS.register("herbal_residue", basic_material_item::noDetails);
     public static final RegistryObject<Item> HERBAL_POUCH = ITEMS.register("herbal_pouch", () ->
-            new basic_material_item(new Item.Properties().stacksTo(64), 1));
+            new basic_material_item(new Item.Properties().stacksTo(64), false, 1));
     public static final RegistryObject<Item> INVESTIGATION_HANDBOOK = ITEMS.register("investigation_handbook", investigation_handbook::new);
     public static final RegistryObject<Item> SIMPLE_PROCESSING_TABLE = ITEMS.register("simple_processing_table", () ->
             new processing_table_item(com.damezame97.white_lily.block.medical_blocks.SIMPLE_PROCESSING_TABLE.get()));
@@ -169,6 +222,12 @@ public final class items
      */
     public static final RegistryObject<Item> FATE_COMPASS =
             ITEMS.register(fate_compass.NAME, fate_compass::new);
+
+    private static net.minecraft.resources.ResourceLocation mc(String path)
+    { return net.minecraft.resources.ResourceLocation.fromNamespaceAndPath("minecraft", path); }
+
+    private static net.minecraft.resources.ResourceLocation operation(String name)
+    { return net.minecraft.resources.ResourceLocation.fromNamespaceAndPath(white_lily.MODID, "operation/" + name); }
 
     private items()
     {

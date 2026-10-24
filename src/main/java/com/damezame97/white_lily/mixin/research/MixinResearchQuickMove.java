@@ -17,7 +17,8 @@ public abstract class MixinResearchQuickMove
     @Inject(method = "quickMoveStack", at = @At("HEAD"), cancellable = true)
     private void whiteLily$researchShift(Player player, int index, CallbackInfoReturnable<ItemStack> callback)
     {
-        if (index == 0 && !research_crafting_gate.canTake(((AbstractContainerMenu)(Object)this).getSlot(0), player))
+        if (index == 0 && (!research_crafting_gate.canTake(((AbstractContainerMenu)(Object)this).getSlot(0), player)
+                ||!com.damezame97.white_lily.recipebook.crafting_choice.canQuickMove((AbstractContainerMenu)(Object)this,player)))
             callback.setReturnValue(ItemStack.EMPTY);
     }
 }

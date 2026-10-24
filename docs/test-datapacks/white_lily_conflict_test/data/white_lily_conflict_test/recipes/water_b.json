@@ -1,0 +1,17 @@
+{
+  "type": "white_lily:prescription_revealing",
+  "ingredients": [
+    {
+      "item": "minecraft:paper"
+    },
+    {
+      "type": "forge:nbt",
+      "item": "minecraft:potion",
+      "nbt": "{Potion:\"minecraft:water\"}"
+    }
+  ],
+  "result": {
+    "item": "minecraft:diamond",
+    "count": 2
+  }
+}

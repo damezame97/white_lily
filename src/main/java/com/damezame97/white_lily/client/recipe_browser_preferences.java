@@ -18,11 +18,22 @@ final class recipe_browser_preferences
 {
     private static final Set<String> FAVORITES = new HashSet<>();
     private static boolean loaded;
+    private static com.damezame97.white_lily.recipebook.browser_order.Mode sort=com.damezame97.white_lily.recipebook.browser_order.Mode.DEFAULT;
+    static com.damezame97.white_lily.recipebook.browser_order.Mode sort(){load();return sort;}
+    private static int itemScale=100,recipeScale=100;
+    static int itemScale(){load();return itemScale;}
+    static int recipeScale(){load();return recipeScale;}
+    static void itemScale(int value){load();itemScale=com.damezame97.white_lily.recipebook.browser_layout.percent(value);save();}
+    static void recipeScale(int value){load();recipeScale=com.damezame97.white_lily.recipebook.browser_layout.percent(value);save();}
+    static void nextSort(){load();sort=sort.next();save();}
+    private static void save(){try{var json=new com.google.gson.JsonObject();json.addProperty("sort",sort.name());json.addProperty("itemScale",itemScale);json.addProperty("recipeScale",recipeScale);Files.createDirectories(FMLPaths.CONFIGDIR.get());Files.writeString(FMLPaths.CONFIGDIR.get().resolve("white_lily-recipe-browser.json"),new Gson().toJson(json),StandardCharsets.UTF_8);}catch(Exception e){com.mojang.logging.LogUtils.getLogger().warn("Cannot save browser preferences",e);}}
     private static Path file() { return FMLPaths.CONFIGDIR.get().resolve("white_lily-recipe-favorites.json"); }
     private static void load()
     {
         if (loaded) return;
         loaded = true;
+        try {Path prefs=FMLPaths.CONFIGDIR.get().resolve("white_lily-recipe-browser.json");if(Files.isRegularFile(prefs)){var json=com.google.gson.JsonParser.parseString(Files.readString(prefs)).getAsJsonObject();if(json.has("sort"))sort=com.damezame97.white_lily.recipebook.browser_order.Mode.valueOf(json.get("sort").getAsString());if(json.has("itemScale"))itemScale=com.damezame97.white_lily.recipebook.browser_layout.percent(json.get("itemScale").getAsInt());if(json.has("recipeScale"))recipeScale=com.damezame97.white_lily.recipebook.browser_layout.percent(json.get("recipeScale").getAsInt());}}
+        catch(Exception e){sort=com.damezame97.white_lily.recipebook.browser_order.Mode.DEFAULT;}
         try
         {
             if (Files.isRegularFile(file()))

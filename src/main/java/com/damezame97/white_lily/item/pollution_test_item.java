@@ -26,17 +26,11 @@ public final class pollution_test_item extends Item
         if (!level.isClientSide)
         {
             if (player.getCooldowns().isOnCooldown(this)) return InteractionResultHolder.fail(stack);
-            if (delta != 0 && !player.hasPermissions(2))
-            {
-                player.displayClientMessage(Component.translatable("message.white_lily.medical.permission"), false);
-                return InteractionResultHolder.fail(stack);
-            }
             if (delta > 0) infection_service.addDirect(player, delta);
             else if (delta < 0) infection_service.reduce(player, -delta);
             player.displayClientMessage(Component.translatable("message.white_lily.pollution.reading",
                     String.format(Locale.ROOT, "%.1f", infection_service.query(player))), false);
             player.getCooldowns().addCooldown(this, 10);
-            if (delta != 0 && !player.getAbilities().instabuild) stack.shrink(1);
         }
         return InteractionResultHolder.sidedSuccess(stack, level.isClientSide);
     }

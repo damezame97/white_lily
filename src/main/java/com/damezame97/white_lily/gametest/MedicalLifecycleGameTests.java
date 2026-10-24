@@ -93,7 +93,7 @@ public class MedicalLifecycleGameTests
     }
 
     @GameTest(template = "empty")
-    public static void testChipsAreServerPermissionCheckedPreciseAndDoNotTreat(GameTestHelper h)
+    public static void testChipsWorkWithoutPermissionAreReusablePreciseAndDoNotTreat(GameTestHelper h)
     {
         ToolPlayer p=new ToolPlayer(h,true);
         p.setGameMode(GameType.CREATIVE);
@@ -108,7 +108,7 @@ public class MedicalLifecycleGameTests
         p.setItemInHand(InteractionHand.MAIN_HAND,new ItemStack(items.POLLUTION_CHIP_LARGE.get(),2));
         items.POLLUTION_CHIP_LARGE.get().use(p.level(),p,InteractionHand.MAIN_HAND);
         near(h,300,infection_service.query(p),"大污染片硬上限300");
-        yes(h,p.getMainHandItem().getCount()==1,"生存消耗1");
+        yes(h,p.getMainHandItem().getCount()==2,"生存重复使用不消耗");
         p.setItemInHand(InteractionHand.MAIN_HAND,new ItemStack(items.CLEANSING_CHIP_MEDIUM.get(),2));
         items.CLEANSING_CHIP_MEDIUM.get().use(p.level(),p,InteractionHand.MAIN_HAND);
         near(h,270,infection_service.query(p),"洁净片直接减30");
@@ -117,8 +117,12 @@ public class MedicalLifecycleGameTests
         ToolPlayer denied=new ToolPlayer(h,false);
         denied.setItemInHand(InteractionHand.MAIN_HAND,new ItemStack(items.POLLUTION_CHIP_LARGE.get(),3));
         items.POLLUTION_CHIP_LARGE.get().use(denied.level(),denied,InteractionHand.MAIN_HAND);
-        near(h,0,infection_service.query(denied),"普通客户端无管理员权限不可改值");
-        yes(h,denied.getMainHandItem().getCount()==3,"无权限不消耗");
+        near(h,100,infection_service.query(denied),"生存玩家无需管理员权限即可改值");
+        yes(h,denied.getMainHandItem().getCount()==3,"生存无权限也不消耗");
+        denied.setItemInHand(InteractionHand.MAIN_HAND,new ItemStack(items.CLEANSING_CHIP_SMALL.get(),3));
+        items.CLEANSING_CHIP_SMALL.get().use(denied.level(),denied,InteractionHand.MAIN_HAND);
+        near(h,90,infection_service.query(denied),"生存玩家无需管理员权限即可净化");
+        yes(h,denied.getMainHandItem().getCount()==3,"净化片不消耗");
         denied.setGameMode(GameType.CREATIVE);
         denied.setItemInHand(InteractionHand.MAIN_HAND,new ItemStack(items.POLLUTION_DETECTOR.get()));
         var result=items.POLLUTION_DETECTOR.get().use(denied.level(),denied,InteractionHand.MAIN_HAND);

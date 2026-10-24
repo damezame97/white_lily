@@ -20,6 +20,9 @@ public class suffering_data
     public boolean equipmentReady;
     public Map<Integer, UUID> equipment = Map.of();
     public float lastDisplayed = Float.NaN;
+    /** Transient HUD synchronization state; never part of the saved ledger. */
+    public float lastHudSynced = Float.NaN;
+    public float clientPending;
     public long nextDisplayTick;
 
     public void add(float amount, long createdTick)
@@ -99,6 +102,7 @@ public class suffering_data
         equipmentReady = false;
         equipment = Map.of();
         lastDisplayed = Float.NaN;
+        lastHudSynced = Float.NaN;
         nextDisplayTick = 0;
     }
 

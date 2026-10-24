@@ -27,7 +27,6 @@ public final class ProcessingBugRegressionGameTests
             BlockPos relative = new BlockPos(1, 2, 1);
             h.setBlock(relative, medical_blocks.SIMPLE_PROCESSING_TABLE.get());
             processing_block_entity original = (processing_block_entity) h.getBlockEntity(relative);
-            original.authorizeInput(ProcessingTestPlayers.create(h));
             original.getInventory().setStackInSlot(0, new ItemStack(items.STONE_MORTAR.get()));
             original.getInventory().setStackInSlot(1, new ItemStack(items.HEMP_STALK.get(), 2));
             for (int tick = 0; tick < 17; tick++) tick(original);

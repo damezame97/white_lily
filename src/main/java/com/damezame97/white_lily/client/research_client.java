@@ -53,6 +53,12 @@ public final class research_client
         research_network.requestOpen();
     }
 
+    /** True while an item/button/shortcut open request is waiting for the server snapshot. */
+    public static boolean isOpening()
+    {
+        return awaitingOpen;
+    }
+
     private static void openFromInventory(Screen parent)
     {
         pendingParent = parent;

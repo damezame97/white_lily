@@ -7,6 +7,7 @@ import net.minecraftforge.registries.*;
 public final class medical_blocks
 {
     public static final DeferredRegister<Block> BLOCKS = DeferredRegister.create(ForgeRegistries.BLOCKS, white_lily.MODID);
+    public static final RegistryObject<Block> WHITE_SLEEPING_BAG = BLOCKS.register("white_sleeping_bag", white_sleeping_bag::new);
     public static final RegistryObject<Block> BITTERLEAF = BLOCKS.register("bitterleaf", () -> new herb_block(true));
     public static final RegistryObject<Block> YARROW = BLOCKS.register("yarrow", () -> new herb_block(true));
     public static final RegistryObject<Block> CALMING_FLOWER = BLOCKS.register("calming_flower", () -> new herb_block(false));

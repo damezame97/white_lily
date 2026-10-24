@@ -23,14 +23,8 @@ public abstract class MixinCraftingPreviewGate
     private static void whiteLily$lockedPreview(AbstractContainerMenu menu,Level level,Player player,
                                                 CraftingContainer grid,ResultContainer result,CallbackInfo callback)
     {
-        if (player == null) return;
-        if (level.isClientSide && com.damezame97.white_lily.recipebook.recipe_unlock_client.revision() == 0) return;
-        var recipe = level.getRecipeManager().getRecipeFor(RecipeType.CRAFTING, grid, level)
-                .filter(found -> found instanceof CraftingRecipe).orElse(null);
-        if (recipe != null && !recipe_unlocks.isUnlocked(player, recipe.getId()))
-        {
-            result.setItem(0, ItemStack.EMPTY);
-            callback.cancel();
+        if(player!=null&&!level.isClientSide&&com.damezame97.white_lily.recipebook.crafting_choice.supports(menu)){
+            com.damezame97.white_lily.recipebook.crafting_choice.update(menu,player);callback.cancel();
         }
     }
 }

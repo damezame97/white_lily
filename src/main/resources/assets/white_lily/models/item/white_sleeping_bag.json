@@ -1,0 +1,6 @@
+{
+  "textures": {
+    "layer0": "white_lily:item/white_sleeping_bag"
+  },
+  "parent": "minecraft:item/generated"
+}

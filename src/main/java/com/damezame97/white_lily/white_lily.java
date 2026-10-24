@@ -80,7 +80,10 @@ public class white_lily
         context.registerConfig(ModConfig.Type.SERVER, Config.SERVER_SPEC);
         infection_network.register();
         com.damezame97.white_lily.research.research_network.register();
+        com.damezame97.white_lily.processing.processing_network.register();
+        com.damezame97.white_lily.recipebook.browser_cheat_network.register();
         com.damezame97.white_lily.recipebook.recipe_unlocks.register();
+        com.damezame97.white_lily.recipebook.crafting_choice_network.register();
     }
 
     private void commonSetup(final FMLCommonSetupEvent event)

@@ -1,0 +1,13 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "pattern": [
+    "XX",
+    "X#",
+    " #"
+  ],
+  "key": {
+    "X": { "item": "minecraft:iron_ingot" },
+    "#": { "item": "minecraft:stick" }
+  },
+  "result": { "item": "white_lily:makeshift_iron_axe" }
+}

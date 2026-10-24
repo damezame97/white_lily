@@ -488,11 +488,10 @@ public class StoredSufferingGameTests
                 "未按 Shift 时只显示展开提示，紫色风味也应收起");
         tooltip.clear();
         ((stored_suffering) ring.getItem()).appendDescription(tooltip, true);
-        helper.assertTrue(tooltip.size() == 9, "展开应包含紫色风味、四行简介和四行效果");
-        helper.assertTrue(Objects.equals(tooltip.get(0).getStyle().getColor(), TextColor.fromRgb(0xAA00AA)), "风味应暗紫");
-        for (int line = 1; line < tooltip.size(); line++)
+        helper.assertTrue(tooltip.size() == 4, "展开只包含四行实际功能说明，不再显示风味或空白叙述");
+        for (Component line : tooltip)
         {
-            helper.assertTrue(Objects.equals(tooltip.get(line).getStyle().getColor(), TextColor.fromRgb(0xAAAAAA)), "普通说明不继承暗紫");
+            helper.assertTrue(Objects.equals(line.getStyle().getColor(), TextColor.fromRgb(0xAAAAAA)), "功能说明统一灰色");
         }
         Component message = stored_suffering_events.pendingMessage(3.04F);
         helper.assertTrue(Objects.equals(message.getStyle().getColor(), TextColor.fromRgb(0xAA0000))

@@ -1,49 +1,421 @@
 {
-  "initial": [
-    "white_lily:investigation_handbook", "white_lily:simple_processing_table", "white_lily:stone_mortar",
-    "white_lily:wooden_tray", "white_lily:charcoal_powder", "white_lily:clay_bowl", "white_lily:beeswax_block",
-    "white_lily:blank_label", "white_lily:coarse_cloth", "white_lily:coarse_cloth_from_fiber",
-    "white_lily:cork_stopper", "white_lily:desiccant_packet", "white_lily:filter_paper",
-    "white_lily:glass_tube", "white_lily:low_qualitypotion", "white_lily:revealed_prescription",
-    "white_lily:thin_cloth_strip", "white_lily:processing/hemp_fiber"
-  ],
-  "initial_outputs": [
-    "#minecraft:planks", "minecraft:stick", "minecraft:crafting_table", "minecraft:torch", "minecraft:charcoal",
-    "minecraft:wooden_pickaxe", "minecraft:wooden_axe", "minecraft:wooden_shovel", "minecraft:wooden_hoe", "minecraft:wooden_sword",
-    "minecraft:stone_pickaxe", "minecraft:stone_axe", "minecraft:stone_shovel", "minecraft:stone_hoe", "minecraft:stone_sword",
-    "minecraft:furnace", "minecraft:chest", "minecraft:bowl", "minecraft:campfire", "minecraft:ladder",
-    "minecraft:bread", "minecraft:paper", "minecraft:book", "minecraft:glass", "minecraft:glass_bottle", "minecraft:string"
-  ],
+  "initial": [],
+  "initial_outputs": [],
   "on_pickup": [
-    { "item": "minecraft:raw_iron", "outputs": ["minecraft:iron_ingot"] },
-    { "item": "minecraft:iron_ore", "outputs": ["minecraft:iron_ingot"] },
-    { "item": "minecraft:deepslate_iron_ore", "outputs": ["minecraft:iron_ingot"] },
-    { "item": "minecraft:raw_gold", "outputs": ["minecraft:gold_ingot"] },
-    { "item": "minecraft:gold_ore", "outputs": ["minecraft:gold_ingot"] },
-    { "item": "minecraft:deepslate_gold_ore", "outputs": ["minecraft:gold_ingot"] },
-    { "item": "minecraft:iron_ingot", "outputs": ["minecraft:iron_pickaxe", "minecraft:iron_axe", "minecraft:iron_sword", "minecraft:iron_shovel", "minecraft:iron_hoe", "minecraft:bucket", "minecraft:shears", "minecraft:shield", "minecraft:flint_and_steel", "minecraft:anvil", "minecraft:stonecutter", "minecraft:smithing_table", "minecraft:blast_furnace"] },
-    { "item": "minecraft:gold_ingot", "outputs": ["minecraft:golden_pickaxe", "minecraft:golden_axe", "minecraft:golden_shovel", "minecraft:golden_hoe", "minecraft:gold_nugget"] },
-    { "item": "minecraft:diamond", "outputs": ["minecraft:diamond_pickaxe", "minecraft:diamond_axe", "minecraft:diamond_shovel", "minecraft:diamond_hoe", "minecraft:diamond_sword", "minecraft:enchanting_table"] },
-    { "item": "minecraft:beef", "outputs": ["minecraft:cooked_beef"] },
-    { "item": "minecraft:porkchop", "outputs": ["minecraft:cooked_porkchop"] },
-    { "item": "minecraft:chicken", "outputs": ["minecraft:cooked_chicken"] },
-    { "item": "minecraft:mutton", "outputs": ["minecraft:cooked_mutton"] },
-    { "item": "minecraft:rabbit", "outputs": ["minecraft:cooked_rabbit"] },
-    { "item": "minecraft:cod", "outputs": ["minecraft:cooked_cod"] },
-    { "item": "minecraft:salmon", "outputs": ["minecraft:cooked_salmon"] },
-    { "item": "minecraft:potato", "outputs": ["minecraft:baked_potato"] },
-    { "item": "minecraft:anvil", "recipes": ["white_lily:operation/anvil"] },
-    { "item": "minecraft:grindstone", "recipes": ["white_lily:operation/grindstone"] },
-    { "item": "minecraft:loom", "recipes": ["white_lily:operation/loom"] },
-    { "item": "minecraft:cartography_table", "recipes": ["white_lily:operation/cartography"] },
-    { "item": "minecraft:enchanting_table", "recipes": ["white_lily:operation/enchanting"] },
-    { "item": "minecraft:brewing_stand", "recipes": ["white_lily:operation/brewing"] },
-    { "item": "irons_spellbooks:arcane_anvil", "recipes": ["white_lily:operation/arcane_anvil"] },
-    { "item": "irons_spellbooks:inscription_table", "recipes": ["white_lily:operation/inscription"] },
-    { "item": "irons_spellbooks:scroll_forge", "recipes": ["white_lily:operation/scroll_forge"] }
+    {
+      "items": ["#minecraft:logs", "#minecraft:planks", "#minecraft:bamboo_blocks", "#forge:logs", "#forge:stripped_logs"],
+      "outputs": [
+        "#minecraft:planks", "minecraft:stick",
+        "minecraft:crafting_table", "minecraft:chest", "minecraft:bowl", "minecraft:mushroom_stew", "minecraft:ladder",
+        "#minecraft:wooden_stairs", "#minecraft:wooden_slabs", "#minecraft:wooden_doors", "#minecraft:wooden_trapdoors",
+        "#minecraft:wooden_buttons", "#minecraft:wooden_pressure_plates", "#minecraft:wooden_fences", "#minecraft:fence_gates",
+        "#minecraft:signs",
+        "minecraft:wooden_pickaxe", "minecraft:wooden_axe", "minecraft:wooden_shovel", "minecraft:wooden_hoe", "minecraft:wooden_sword"
+      ],
+      "recipe_types": ["crafting", "stonecutting"]
+    },
+    {
+      "item": "#minecraft:stone_tool_materials",
+      "outputs": ["minecraft:stone_pickaxe", "minecraft:stone_axe", "minecraft:stone_shovel", "minecraft:stone_hoe", "minecraft:stone_sword", "minecraft:furnace", "minecraft:lever"],
+      "recipe_types": ["crafting"]
+    },
+    {
+      "item": "minecraft:cobblestone",
+      "outputs": ["#minecraft:stairs", "#minecraft:slabs", "#minecraft:walls"],
+      "inputs": ["minecraft:cobblestone"],
+      "recipe_types": ["crafting", "stonecutting"]
+    },
+    {
+      "item": "minecraft:cobbled_deepslate",
+      "outputs": ["#minecraft:stairs", "#minecraft:slabs", "#minecraft:walls", "minecraft:polished_deepslate"],
+      "inputs": ["minecraft:cobbled_deepslate"],
+      "recipe_types": ["crafting", "stonecutting"]
+    },
+    {
+      "item": "minecraft:blackstone",
+      "outputs": ["#minecraft:stairs", "#minecraft:slabs", "#minecraft:walls", "minecraft:polished_blackstone"],
+      "inputs": ["minecraft:blackstone"],
+      "recipe_types": ["crafting", "stonecutting"]
+    },
+    {
+      "item": "minecraft:stone",
+      "outputs": ["#minecraft:stairs", "#minecraft:slabs", "#minecraft:walls", "#minecraft:stone_buttons", "minecraft:stone_pressure_plate", "minecraft:stone_bricks"],
+      "inputs": ["minecraft:stone"],
+      "recipe_types": ["crafting", "stonecutting"]
+    },
+    {
+      "item": "minecraft:smooth_stone",
+      "outputs": ["#minecraft:stairs", "#minecraft:slabs"],
+      "inputs": ["minecraft:smooth_stone"],
+      "recipe_types": ["crafting", "stonecutting"]
+    },
+    {
+      "item": "minecraft:stone_bricks",
+      "outputs": ["#minecraft:stairs", "#minecraft:slabs", "#minecraft:walls"],
+      "inputs": ["minecraft:stone_bricks"],
+      "recipe_types": ["crafting", "stonecutting"]
+    },
+    {
+      "item": "minecraft:polished_deepslate",
+      "outputs": ["#minecraft:stairs", "#minecraft:slabs", "#minecraft:walls", "minecraft:deepslate_bricks"],
+      "inputs": ["minecraft:polished_deepslate"],
+      "recipe_types": ["crafting", "stonecutting"]
+    },
+    {
+      "item": "minecraft:deepslate_bricks",
+      "outputs": ["#minecraft:stairs", "#minecraft:slabs", "#minecraft:walls", "minecraft:deepslate_tiles"],
+      "inputs": ["minecraft:deepslate_bricks"],
+      "recipe_types": ["crafting", "stonecutting"]
+    },
+    {
+      "item": "minecraft:deepslate_tiles",
+      "outputs": ["#minecraft:stairs", "#minecraft:slabs", "#minecraft:walls"],
+      "inputs": ["minecraft:deepslate_tiles"],
+      "recipe_types": ["crafting", "stonecutting"]
+    },
+    {
+      "item": "minecraft:polished_blackstone",
+      "outputs": ["#minecraft:stairs", "#minecraft:slabs", "#minecraft:walls", "#minecraft:stone_buttons", "minecraft:polished_blackstone_pressure_plate", "minecraft:polished_blackstone_bricks"],
+      "inputs": ["minecraft:polished_blackstone"],
+      "recipe_types": ["crafting", "stonecutting"]
+    },
+    {
+      "item": "minecraft:polished_blackstone_bricks",
+      "outputs": ["#minecraft:stairs", "#minecraft:slabs", "#minecraft:walls"],
+      "inputs": ["minecraft:polished_blackstone_bricks"],
+      "recipe_types": ["crafting", "stonecutting"]
+    },
+    {
+      "item": "minecraft:cobblestone",
+      "outputs": ["minecraft:stone"],
+      "inputs": ["minecraft:cobblestone"],
+      "recipe_types": ["smelting"]
+    },
+    {
+      "item": "minecraft:cobbled_deepslate",
+      "outputs": ["minecraft:deepslate"],
+      "inputs": ["minecraft:cobbled_deepslate"],
+      "recipe_types": ["smelting"]
+    },
+    {
+      "item": "minecraft:stone",
+      "outputs": ["minecraft:smooth_stone"],
+      "inputs": ["minecraft:stone"],
+      "recipe_types": ["smelting"]
+    },
+    {
+      "items": ["minecraft:sand", "minecraft:red_sand"],
+      "outputs": ["minecraft:glass"],
+      "inputs": ["#minecraft:sand"],
+      "recipe_types": ["smelting"]
+    },
+    {
+      "item": "minecraft:clay_ball",
+      "outputs": ["minecraft:brick"],
+      "inputs": ["minecraft:clay_ball"],
+      "recipe_types": ["smelting"]
+    },
+    {
+      "item": "minecraft:clay",
+      "outputs": ["minecraft:terracotta"],
+      "inputs": ["minecraft:clay"],
+      "recipe_types": ["smelting"]
+    },
+    {
+      "item": "minecraft:raw_iron",
+      "outputs": ["minecraft:iron_ingot"],
+      "inputs": ["minecraft:raw_iron"],
+      "recipe_types": ["smelting"]
+    },
+    {
+      "item": "minecraft:iron_ore",
+      "outputs": ["minecraft:iron_ingot"],
+      "inputs": ["minecraft:iron_ore"],
+      "recipe_types": ["smelting"]
+    },
+    {
+      "item": "minecraft:deepslate_iron_ore",
+      "outputs": ["minecraft:iron_ingot"],
+      "inputs": ["minecraft:deepslate_iron_ore"],
+      "recipe_types": ["smelting"]
+    },
+    {
+      "item": "minecraft:raw_gold",
+      "outputs": ["minecraft:gold_ingot"],
+      "inputs": ["minecraft:raw_gold"],
+      "recipe_types": ["smelting"]
+    },
+    {
+      "item": "minecraft:gold_ore",
+      "outputs": ["minecraft:gold_ingot"],
+      "inputs": ["minecraft:gold_ore"],
+      "recipe_types": ["smelting"]
+    },
+    {
+      "item": "minecraft:deepslate_gold_ore",
+      "outputs": ["minecraft:gold_ingot"],
+      "inputs": ["minecraft:deepslate_gold_ore"],
+      "recipe_types": ["smelting"]
+    },
+    {
+      "item": "minecraft:raw_copper",
+      "outputs": ["minecraft:copper_ingot"],
+      "inputs": ["minecraft:raw_copper"],
+      "recipe_types": ["smelting"]
+    },
+    {
+      "item": "minecraft:copper_ore",
+      "outputs": ["minecraft:copper_ingot"],
+      "inputs": ["minecraft:copper_ore"],
+      "recipe_types": ["smelting"]
+    },
+    {
+      "item": "minecraft:deepslate_copper_ore",
+      "outputs": ["minecraft:copper_ingot"],
+      "inputs": ["minecraft:deepslate_copper_ore"],
+      "recipe_types": ["smelting"]
+    },
+    {
+      "item": "minecraft:beef",
+      "outputs": ["minecraft:cooked_beef"],
+      "inputs": ["minecraft:beef"],
+      "recipe_types": ["smelting", "smoking"]
+    },
+    {
+      "item": "minecraft:porkchop",
+      "outputs": ["minecraft:cooked_porkchop"],
+      "inputs": ["minecraft:porkchop"],
+      "recipe_types": ["smelting", "smoking"]
+    },
+    {
+      "item": "minecraft:chicken",
+      "outputs": ["minecraft:cooked_chicken"],
+      "inputs": ["minecraft:chicken"],
+      "recipe_types": ["smelting", "smoking"]
+    },
+    {
+      "item": "minecraft:mutton",
+      "outputs": ["minecraft:cooked_mutton"],
+      "inputs": ["minecraft:mutton"],
+      "recipe_types": ["smelting", "smoking"]
+    },
+    {
+      "item": "minecraft:rabbit",
+      "outputs": ["minecraft:cooked_rabbit"],
+      "inputs": ["minecraft:rabbit"],
+      "recipe_types": ["smelting", "smoking"]
+    },
+    {
+      "item": "minecraft:cod",
+      "outputs": ["minecraft:cooked_cod"],
+      "inputs": ["minecraft:cod"],
+      "recipe_types": ["smelting", "smoking"]
+    },
+    {
+      "item": "minecraft:salmon",
+      "outputs": ["minecraft:cooked_salmon"],
+      "inputs": ["minecraft:salmon"],
+      "recipe_types": ["smelting", "smoking"]
+    },
+    {
+      "item": "minecraft:potato",
+      "outputs": ["minecraft:baked_potato"],
+      "inputs": ["minecraft:potato"],
+      "recipe_types": ["smelting", "smoking"]
+    },
+    {
+      "item": "minecraft:furnace",
+      "outputs": ["minecraft:charcoal"],
+      "recipe_types": ["smelting"]
+    },
+    {
+      "item": "minecraft:furnace",
+      "outputs": ["minecraft:smoker"],
+      "recipe_types": ["crafting"]
+    },
+    {
+      "item": "#minecraft:coals",
+      "outputs": ["minecraft:torch"],
+      "recipe_types": ["crafting"]
+    },
+    {
+      "item": "minecraft:iron_ingot",
+      "outputs": ["minecraft:iron_ingot", "minecraft:iron_nugget", "minecraft:iron_block"],
+      "inputs": ["minecraft:iron_ingot", "minecraft:iron_nugget", "minecraft:iron_block"],
+      "recipe_types": ["crafting"]
+    },
+    {
+      "item": "minecraft:bucket",
+      "recipes": ["minecraft:cauldron"]
+    },
+    {
+      "item": "white_lily:blacksmith_tools_notes",
+      "recipes": ["white_lily:blacksmith_tools_notes_copy"]
+    },
+    {
+      "item": "white_lily:blacksmith_armor_notes",
+      "recipes": ["white_lily:blacksmith_armor_notes_copy"]
+    },
+    {
+      "item": "white_lily:shield_recipe_book",
+      "recipes": ["white_lily:shield_recipe_book_copy"]
+    },
+    {
+      "item": "white_lily:stonecutter_notes",
+      "recipes": ["white_lily:stonecutter_notes_copy"]
+    },
+    {
+      "item": "white_lily:blacksmith_forging_notes",
+      "recipes": ["white_lily:blacksmith_forging_notes_copy"]
+    },
+    {
+      "item": "white_lily:equipment_upgrade_notes",
+      "recipes": ["white_lily:equipment_upgrade_notes_copy"]
+    },
+    {
+      "item": "white_lily:transport_notes",
+      "recipes": ["white_lily:transport_notes_copy"]
+    }
   ],
-  "on_advancement": [
-    { "advancement": "minecraft:story/mine_stone", "outputs": ["minecraft:smoker", "minecraft:grindstone", "minecraft:loom", "minecraft:cartography_table"] },
-    { "advancement": "minecraft:adventure/trade", "recipes": ["white_lily:operation/trading"] }
+  "on_advancement": [],
+  "conditional": [
+    {
+      "seen": ["minecraft:iron_ingot"],
+      "unlocked": ["minecraft:furnace"],
+      "recipes": ["minecraft:blast_furnace"]
+    },
+    {
+      "seen": ["minecraft:raw_iron"],
+      "unlocked": ["minecraft:blast_furnace"],
+      "inputs": ["minecraft:raw_iron"],
+      "outputs": ["minecraft:iron_ingot"],
+      "recipe_types": ["blasting"]
+    },
+    {
+      "seen": ["minecraft:iron_ore"],
+      "unlocked": ["minecraft:blast_furnace"],
+      "inputs": ["minecraft:iron_ore"],
+      "outputs": ["minecraft:iron_ingot"],
+      "recipe_types": ["blasting"]
+    },
+    {
+      "seen": ["minecraft:deepslate_iron_ore"],
+      "unlocked": ["minecraft:blast_furnace"],
+      "inputs": ["minecraft:deepslate_iron_ore"],
+      "outputs": ["minecraft:iron_ingot"],
+      "recipe_types": ["blasting"]
+    },
+    {
+      "seen": ["minecraft:raw_gold"],
+      "unlocked": ["minecraft:blast_furnace"],
+      "inputs": ["minecraft:raw_gold"],
+      "outputs": ["minecraft:gold_ingot"],
+      "recipe_types": ["blasting"]
+    },
+    {
+      "seen": ["minecraft:gold_ore"],
+      "unlocked": ["minecraft:blast_furnace"],
+      "inputs": ["minecraft:gold_ore"],
+      "outputs": ["minecraft:gold_ingot"],
+      "recipe_types": ["blasting"]
+    },
+    {
+      "seen": ["minecraft:deepslate_gold_ore"],
+      "unlocked": ["minecraft:blast_furnace"],
+      "inputs": ["minecraft:deepslate_gold_ore"],
+      "outputs": ["minecraft:gold_ingot"],
+      "recipe_types": ["blasting"]
+    },
+    {
+      "seen": ["minecraft:raw_copper"],
+      "unlocked": ["minecraft:blast_furnace"],
+      "inputs": ["minecraft:raw_copper"],
+      "outputs": ["minecraft:copper_ingot"],
+      "recipe_types": ["blasting"]
+    },
+    {
+      "seen": ["minecraft:copper_ore"],
+      "unlocked": ["minecraft:blast_furnace"],
+      "inputs": ["minecraft:copper_ore"],
+      "outputs": ["minecraft:copper_ingot"],
+      "recipe_types": ["blasting"]
+    },
+    {
+      "seen": ["minecraft:deepslate_copper_ore"],
+      "unlocked": ["minecraft:blast_furnace"],
+      "inputs": ["minecraft:deepslate_copper_ore"],
+      "outputs": ["minecraft:copper_ingot"],
+      "recipe_types": ["blasting"]
+    },
+    {
+      "seen": ["minecraft:iron_ingot"],
+      "unlocked": ["minecraft:wooden_pickaxe", "minecraft:stone_pickaxe"],
+      "recipes": ["white_lily:makeshift_iron_pickaxe"]
+    },
+    {
+      "seen": ["minecraft:iron_ingot"],
+      "unlocked": ["minecraft:wooden_axe", "minecraft:stone_axe"],
+      "recipes": ["white_lily:makeshift_iron_axe"]
+    },
+    {
+      "seen": ["minecraft:iron_ingot"],
+      "unlocked": ["minecraft:wooden_shovel", "minecraft:stone_shovel"],
+      "recipes": ["white_lily:makeshift_iron_shovel"]
+    },
+    {
+      "seen": ["minecraft:iron_ingot"],
+      "unlocked": ["minecraft:wooden_hoe", "minecraft:stone_hoe"],
+      "recipes": ["white_lily:makeshift_iron_hoe"]
+    },
+    {
+      "seen": ["minecraft:iron_ingot"],
+      "unlocked": ["minecraft:wooden_sword", "minecraft:stone_sword"],
+      "recipes": ["white_lily:makeshift_iron_sword"]
+    },
+    {
+      "seen": ["minecraft:iron_ingot", "minecraft:string"],
+      "recipes": ["minecraft:shears"]
+    },
+    {
+      "seen": ["minecraft:iron_ingot", "minecraft:flint"],
+      "recipes": ["minecraft:flint_and_steel"]
+    },
+    {
+      "seen": ["minecraft:iron_ingot", "minecraft:bowl"],
+      "recipes": ["minecraft:bucket"]
+    },
+    {
+      "seen": ["minecraft:iron_ingot"],
+      "unlocked_outputs": ["#minecraft:planks"],
+      "recipes": ["minecraft:iron_bars", "minecraft:chain"]
+    },
+    {
+      "seen": ["minecraft:iron_ingot"],
+      "unlocked_outputs": ["#minecraft:wooden_doors"],
+      "recipes": ["minecraft:iron_door"]
+    },
+    {
+      "seen": ["minecraft:iron_ingot"],
+      "unlocked_outputs": ["#minecraft:wooden_trapdoors"],
+      "recipes": ["minecraft:iron_trapdoor"]
+    },
+    {
+      "seen": ["minecraft:iron_ingot", "minecraft:torch"],
+      "recipes": ["minecraft:lantern"]
+    },
+    {
+      "seen": ["minecraft:soul_torch"],
+      "unlocked": ["minecraft:lantern"],
+      "recipes": ["minecraft:soul_lantern"]
+    },
+    {
+      "seen": ["minecraft:chest"],
+      "unlocked": ["minecraft:minecart"],
+      "recipes": ["minecraft:chest_minecart"]
+    },
+    {
+      "seen": ["minecraft:iron_ingot", "minecraft:redstone"],
+      "recipes": ["minecraft:compass"]
+    }
   ]
 }
