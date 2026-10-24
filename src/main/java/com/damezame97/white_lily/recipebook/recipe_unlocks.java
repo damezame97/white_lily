@@ -27,7 +27,7 @@ public final class recipe_unlocks {
     public static final String DATA_KEY="white_lily_recipe_unlocks";
     private static final Map<Player,Progress> CACHE=Collections.synchronizedMap(new WeakHashMap<>());
     private static final SimpleChannel CHANNEL=NetworkRegistry.ChannelBuilder.named(ResourceLocation.fromNamespaceAndPath("white_lily","recipe_unlocks"))
-        .networkProtocolVersion(()->"1").clientAcceptedVersions("1"::equals).serverAcceptedVersions("1"::equals).simpleChannel();
+        .networkProtocolVersion(()->"2").clientAcceptedVersions("2"::equals).serverAcceptedVersions("2"::equals).simpleChannel();
     private static boolean registered;
     private static final class Progress {
         final Set<ResourceLocation> recipes=new LinkedHashSet<>(), seen=new LinkedHashSet<>();
@@ -74,15 +74,52 @@ public final class recipe_unlocks {
     }
     public static boolean unlock(ServerPlayer player,ResourceLocation id) {
         if(id==null || !exists(player,id) || !research_service.canCraft(player,id)) return false;
-        if(!progress(player).recipes.add(id)) return false;
-        progress(player).revision++; save(player,progress(player)); sync(player); refresh(player); return true;
+        Progress data=progress(player); if(!data.recipes.add(id)) return false;
+        data.revision++;
+        if(evaluateConditional(player)) data.revision++;
+        save(player,data); sync(player); refresh(player); return true;
     }
     private static boolean exists(ServerPlayer player,ResourceLocation id) {
-        return id.getNamespace().equals("white_lily") && id.getPath().startsWith("operation/") || player.level().getRecipeManager().byKey(id).isPresent();
+        return isOperation(id) || player.level().getRecipeManager().byKey(id).isPresent();
+    }
+    /** True for a real recipe/operation whose current research binding is also valid. */
+    public static boolean canGrant(ServerPlayer player,ResourceLocation id) {
+        return player!=null && id!=null && exists(player,id) && research_service.canCraft(player,id);
+    }
+    public static boolean isOperation(ResourceLocation id) {
+        return id!=null && id.getNamespace().equals(com.damezame97.white_lily.white_lily.MODID)
+                && id.getPath().startsWith("operation/");
     }
     private static boolean grant(ServerPlayer player,recipe_unlock_rules.Grant rule) {
         Progress data=progress(player); boolean changed=false;
         for(ResourceLocation id:recipe_unlock_rules.resolve(rule,player.level())) if(exists(player,id) && data.recipes.add(id)) changed=true;
+        return changed;
+    }
+    /** Re-evaluate data-driven AND conditions after a new item or recipe unlock. */
+    private static boolean evaluateConditional(ServerPlayer player) {
+        Progress data=progress(player); boolean changed=false;
+        // A condition may unlock the recipe another condition requires; converge in bounded passes.
+        for(int pass=0;pass<16;pass++) {
+            boolean passChanged=false;
+            // Snapshot only recipes the player really owns; tags such as #minecraft:wooden_doors
+            // then mean "any one door recipe this player has learned", not "all species".
+            List<ItemStack> unlockedOutputs=new ArrayList<>();
+            for(ResourceLocation id:unlocked(player)) {
+                Recipe<?> recipe=player.level().getRecipeManager().byKey(id).orElse(null);
+                if(recipe==null) continue;
+                ItemStack output=recipe.getResultItem(player.level().registryAccess());
+                if(!output.isEmpty()) unlockedOutputs.add(output);
+            }
+            java.util.function.Predicate<String> outputUnlocked=selector->
+                    unlockedOutputs.stream().anyMatch(output->recipe_unlock_rules.matches(selector,output));
+            for(recipe_unlock_rules.Conditional rule:recipe_unlock_rules.conditionals()) {
+                if(!rule.matches(data.seen,id->isUnlocked(player,id),outputUnlocked)) continue;
+                for(ResourceLocation id:recipe_unlock_rules.resolve(rule.grant(),player.level()))
+                    if(exists(player,id) && research_service.canCraft(player,id) && data.recipes.add(id)) passChanged=true;
+            }
+            if(!passChanged) break;
+            changed=true;
+        }
         return changed;
     }
     public static void initialize(ServerPlayer player) {
@@ -102,6 +139,7 @@ public final class recipe_unlocks {
             }
         }
         for(ResourceLocation id:research_catalog.recipeOwners().keySet()) if(research_service.canCraft(player,id)) changed|=data.recipes.add(id);
+        changed|=evaluateConditional(player);
         if(changed) data.revision++;
         save(player,data); sync(player);
     }
@@ -131,27 +169,52 @@ public final class recipe_unlocks {
         ResourceLocation id=net.minecraftforge.registries.ForgeRegistries.ITEMS.getKey(stack.getItem());
         Progress data=progress(player); if(id==null || !data.seen.add(id)) return;
         boolean changed=false; for(var rule:recipe_unlock_rules.pickups()) if(recipe_unlock_rules.matches(rule.item(),stack)) changed|=grant(player,rule.grant());
+        changed|=evaluateConditional(player);
         if(changed) data.revision++; save(player,data); if(changed) { sync(player); refresh(player); }
     }
     public static synchronized void register() {
         if(registered) return; registered=true;
         CHANNEL.messageBuilder(Snapshot.class,0,NetworkDirection.PLAY_TO_CLIENT).encoder(Snapshot::write).decoder(Snapshot::read).consumerNetworkThread(Snapshot::handle).add();
+        CHANNEL.messageBuilder(TransferReply.class,2,NetworkDirection.PLAY_TO_CLIENT).encoder(TransferReply::write).decoder(TransferReply::read).consumerNetworkThread(TransferReply::handle).add();
         CHANNEL.messageBuilder(Transfer.class,1,NetworkDirection.PLAY_TO_SERVER).encoder(Transfer::write).decoder(Transfer::read).consumerNetworkThread(Transfer::handle).add();
     }
+    private static int legacyRequest;
     public static void requestTransfer(int containerId,ResourceLocation recipe,boolean maximum) {
-        if(recipe!=null) CHANNEL.sendToServer(new Transfer(containerId,recipe,maximum));
+        var mcRecipe=net.minecraftforge.fml.DistExecutor.unsafeCallWhenOn(net.minecraftforge.api.distmarker.Dist.CLIENT,()->()->com.damezame97.white_lily.client.recipe_browser_index.recipeFingerprint(recipe));
+        requestTransfer(containerId,recipe,maximum,mcRecipe==null?"":mcRecipe,--legacyRequest);
     }
-    private record Transfer(int menu,ResourceLocation recipe,boolean maximum) {
-        void write(FriendlyByteBuf buffer) { buffer.writeVarInt(menu); buffer.writeResourceLocation(recipe); buffer.writeBoolean(maximum); }
-        static Transfer read(FriendlyByteBuf buffer) { return new Transfer(buffer.readVarInt(),buffer.readResourceLocation(),buffer.readBoolean()); }
-        void handle(Supplier<NetworkEvent.Context> supplier) {
-            var context=supplier.get(); ServerPlayer player=context.getSender();
-            context.enqueueWork(()-> {
-                if(player!=null && player.isAlive() && player.containerMenu.containerId==menu
-                    && player.containerMenu instanceof com.damezame97.white_lily.processing.processing_menu table
-                    && table.stillValid(player) && isUnlocked(player,recipe)) table.fillRecipe(player,recipe,maximum);
-            }); context.setPacketHandled(true);
+    public static void requestTransfer(int menu,ResourceLocation recipe,boolean maximum,String fingerprint,int request) {
+        if(recipe!=null)CHANNEL.sendToServer(new Transfer(menu,recipe,maximum,fingerprint,request));
+    }
+    private static final Map<Player,Long> LAST_TRANSFER=Collections.synchronizedMap(new WeakHashMap<>());
+    private record Processed(int menu,ResourceLocation recipe,boolean maximum,String fingerprint,transfer_reason reason) { }
+    private static final Map<Player,LinkedHashMap<Integer,Processed>> TRANSFERS=Collections.synchronizedMap(new WeakHashMap<>());
+    public static transfer_reason processTransfer(ServerPlayer player,int menu,ResourceLocation recipe,boolean maximum,String fingerprint,int request)
+    {
+        if(!player.isAlive()||player.containerMenu.containerId!=menu||!player.containerMenu.stillValid(player))return transfer_reason.MENU_INVALID;
+        var cache=TRANSFERS.computeIfAbsent(player,p->new LinkedHashMap<>());Processed prior=cache.get(request);
+        if(prior!=null)return prior.menu()==menu&&prior.recipe().equals(recipe)&&prior.maximum()==maximum&&prior.fingerprint().equals(fingerprint)?prior.reason():transfer_reason.DATA_CHANGED;
+        long tick=player.level().getGameTime(),last=LAST_TRANSFER.getOrDefault(player,Long.MIN_VALUE);
+        transfer_reason result;
+        if(last!=Long.MIN_VALUE&&tick>=last&&tick-last<3)result=transfer_reason.COOLDOWN;
+        else{LAST_TRANSFER.put(player,tick);result=browser_transfer.apply(player,menu,recipe,fingerprint,maximum);}
+        if(cache.size()>=32)cache.remove(cache.keySet().iterator().next());cache.put(request,new Processed(menu,recipe,maximum,fingerprint,result));return result;
+    }
+    private record Transfer(int menu,ResourceLocation recipe,boolean maximum,String fingerprint,int request) {
+        void write(FriendlyByteBuf b){b.writeVarInt(menu);b.writeResourceLocation(recipe);b.writeBoolean(maximum);b.writeUtf(fingerprint,128);b.writeVarInt(request);}
+        static Transfer read(FriendlyByteBuf b){return new Transfer(b.readVarInt(),b.readResourceLocation(),b.readBoolean(),b.readUtf(128),b.readVarInt());}
+        void handle(Supplier<NetworkEvent.Context> supplier){
+            var context=supplier.get();context.enqueueWork(()->{
+                ServerPlayer player=context.getSender();if(player==null||player.connection==null)return;
+                transfer_reason result=processTransfer(player,menu,recipe,maximum,fingerprint,request);
+                CHANNEL.send(PacketDistributor.PLAYER.with(()->player),new TransferReply(menu,recipe,request,result));
+            });context.setPacketHandled(true);
         }
+    }
+    private record TransferReply(int menu,ResourceLocation recipe,int request,transfer_reason reason){
+        void write(FriendlyByteBuf b){b.writeVarInt(menu);b.writeResourceLocation(recipe);b.writeVarInt(request);b.writeEnum(reason);}
+        static TransferReply read(FriendlyByteBuf b){return new TransferReply(b.readVarInt(),b.readResourceLocation(),b.readVarInt(),b.readEnum(transfer_reason.class));}
+        void handle(Supplier<NetworkEvent.Context> supplier){var context=supplier.get();context.enqueueWork(()->browser_transfer_feedback.accept(new browser_transfer_feedback.Reply(menu,recipe,request,reason)));context.setPacketHandled(true);}
     }
     private record Snapshot(long revision,Set<ResourceLocation> recipes) {
         void write(FriendlyByteBuf buffer) { buffer.writeLong(revision); buffer.writeVarInt(recipes.size()); recipes.forEach(buffer::writeResourceLocation); }

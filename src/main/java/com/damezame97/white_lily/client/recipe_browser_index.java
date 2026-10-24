@@ -1,5 +1,6 @@
 package com.damezame97.white_lily.client;
 
+import com.damezame97.white_lily.processing.processing_menu;
 import com.damezame97.white_lily.processing.processing_recipe;
 import com.damezame97.white_lily.block.medical_blocks;
 import com.damezame97.white_lily.recipebook.recipe_unlock_client;
@@ -21,26 +22,15 @@ import net.minecraftforge.common.crafting.IShapedRecipe;
 import javax.annotation.Nullable;
 import java.util.*;
 import java.util.function.Predicate;
+import com.damezame97.white_lily.recipebook.browser_display.*;
+import com.damezame97.white_lily.recipebook.browser_item_catalog;
+import com.damezame97.white_lily.recipebook.browser_order;
+import com.damezame97.white_lily.recipebook.browser_transfer;
 
 /** A client display index built exclusively from the server's personal unlock snapshot. */
 public final class recipe_browser_index
 {
     public static final String KEY = "screen.white_lily.recipe_browser.";
-    public record DisplaySlot(Ingredient ingredient, int count, int x, int y, Component label, boolean output)
-    {
-        public ItemStack stack(long cycle)
-        {
-            ItemStack[] choices = ingredient.getItems();
-            if (choices.length == 0) return ItemStack.EMPTY;
-            ItemStack result = choices[Math.floorMod(cycle, choices.length)].copy();
-            result.setCount(Math.max(1, count));
-            return result;
-        }
-    }
-    public record Display(Recipe<?> recipe, ResourceLocation category, Component title, ItemStack workstation,
-                          List<DisplaySlot> slots, List<ItemStack> outputs, List<Component> notes, int contentHeight)
-    { }
-
     /** Client-only extension point. Register before opening a container; the unlock filter cannot be bypassed. */
     public interface DisplayProvider
     {
@@ -52,19 +42,112 @@ public final class recipe_browser_index
     private static long lastRevision = Long.MIN_VALUE;
     private static String lastLanguage = "";
     private static Set<ResourceLocation> lastUnlocked = Set.of();
+    private static Set<ResourceLocation> lastMachineRecipes = Set.of();
+    private static long lastMachineRevision = Long.MIN_VALUE;
+    private static boolean lastShowAll;
+    private static long lastCheatRevision = Long.MIN_VALUE;
     private static List<Display> known = List.of();
     private static List<ItemStack> items = List.of();
+    private static final Map<browser_order.Mode,List<ItemStack>> SORTED=new EnumMap<>(browser_order.Mode.class);
+    private static final Map<Recipe<?>,String> FINGERPRINTS=new IdentityHashMap<>();
+    public static String recipeFingerprint(ResourceLocation id){var mc=Minecraft.getInstance();var r=mc.level==null?null:mc.level.getRecipeManager().byKey(id).orElse(null);return r==null?"":FINGERPRINTS.computeIfAbsent(r,browser_transfer::fingerprint);}
+    public static String modName(ItemStack stack){String namespace=BuiltInRegistries.ITEM.getKey(stack.getItem()).getNamespace();return namespace.equals("minecraft")?"Minecraft":net.minecraftforge.fml.ModList.get().getModContainerById(namespace).map(m->m.getModInfo().getDisplayName()).filter(name->!name.isBlank()).orElse(namespace);}
+    public static List<ItemStack> sortedItems(browser_order.Mode mode)
+    {
+        refresh();return SORTED.computeIfAbsent(mode,key->{
+            Map<ItemStack,browser_order.Key> names=new IdentityHashMap<>();
+            for(ItemStack stack:items){var id=BuiltInRegistries.ITEM.getKey(stack.getItem());String name=net.minecraft.ChatFormatting.stripFormatting(stack.getHoverName().getString());var category=browser_category_reload.classify(stack);String group=category==null?name:Component.translatable(category.translation()).getString();names.put(stack,new browser_order.Key(name==null?"":name,id.getNamespace(),modName(stack),id.toString(),stack.hasTag()?stack.getTag().toString():"",group,category==null?"":category.id()));}
+            return items.stream().sorted(Comparator.comparing(names::get,browser_order.comparator(mode,Minecraft.getInstance().options.languageCode))).toList();
+        });
+    }
 
     public static void register(DisplayProvider provider)
     { PROVIDERS.add(Objects.requireNonNull(provider)); invalidate(); }
-    public static void invalidate() { lastManager = null; }
+    public static void invalidate() { lastManager = null; browser_category_reload.invalidate(); }
 
     public static List<Display> recipes()
     { refresh(); return known; }
     public static List<ItemStack> items()
     { refresh(); return items; }
     public static void clear()
-    { lastManager = null; lastRevision = Long.MIN_VALUE; lastUnlocked = Set.of(); known = List.of(); items = List.of(); }
+    {
+        lastManager = null; lastRevision = Long.MIN_VALUE; lastUnlocked = Set.of();
+        lastMachineRecipes = Set.of(); lastMachineRevision = Long.MIN_VALUE;
+        lastShowAll = false; lastCheatRevision = Long.MIN_VALUE;
+        known = List.of(); items = List.of();SORTED.clear();FINGERPRINTS.clear();
+    }
+
+    @Nullable private static processing_menu currentProcessingMenu()
+    {
+        Minecraft mc = Minecraft.getInstance();
+        return mc.player != null && mc.player.containerMenu instanceof processing_menu menu ? menu : null;
+    }
+
+    @Nullable private static processing_client_context.Context machineContext()
+    {
+        processing_menu menu = currentProcessingMenu();
+        if(menu==null)return null;
+        var mc=Minecraft.getInstance();
+        if(!menu.stillValid(mc.player)||menu.table()!=null&&(menu.table().isRemoved()||mc.level.getBlockEntity(menu.machinePos())!=menu.table()))
+        {processing_client_context.clear(menu.containerId);return null;}
+        return processing_client_context.get(menu.containerId,menu.machinePos());
+    }
+
+    public static Set<ResourceLocation> machineRecipes()
+    {
+        var context = machineContext();
+        return context == null ? Set.of() : context.recipes();
+    }
+
+    public static long machineRevision()
+    {
+        var context = machineContext();
+        return context == null ? Long.MIN_VALUE : context.revision();
+    }
+
+    public static boolean machineContextAvailable() { return machineContext() != null; }
+
+    public static boolean isMachineRecipe(ResourceLocation id) { return id != null && machineRecipes().contains(id); }
+
+    /** Fill is allowed only when the live machine already knows the exact processing recipe. */
+    public static boolean canFillProcessing(ResourceLocation id) { return isMachineRecipe(id); }
+
+    public static String transferHint(ResourceLocation id)
+    {
+        var context = machineContext();
+        Minecraft mc = Minecraft.getInstance();
+        Recipe<?> recipe = mc.level == null ? null : mc.level.getRecipeManager().byKey(id).orElse(null);
+        if (recipe instanceof processing_recipe && context != null
+                && recipe_unlock_client.isUnlocked(id) && !context.recipes().contains(id))
+            return "transfer_unregistered";
+        return "transfer_unavailable";
+    }
+
+    /** Personal revision plus the current menu's machine-context revision. */
+    public static long revision()
+    {
+        long revision = recipe_unlock_client.revision();
+        var context = machineContext();
+        if (context != null) revision = revision * 31L + context.revision();
+        return revision * 31L + browser_cheat_client.revision();
+    }
+
+    @Nullable public static Component processingStatus(processing_recipe recipe)
+    {
+        var context = machineContext();
+        if (recipe == null) return null;
+        if(recipe.researchNode()==null)return tr("status.base");
+        if(context==null)return recipe_unlock_client.isUnlocked(recipe.getId())?tr("status.personal"):null;
+        boolean personal = recipe_unlock_client.isUnlocked(recipe.getId());
+        boolean machine = context.recipes().contains(recipe.getId());
+        if (recipe.researchNode() == null) return machine ? tr("status.base") : null;
+        if (personal && machine) return tr("status.ready");
+        if (!personal && machine) return tr("status.machine");
+        if (personal) return tr("status.unregistered");
+        return null;
+    }
+
+    private static Component tr(String key) { return Component.translatable(KEY + key); }
 
     private static void refresh()
     {
@@ -72,36 +155,73 @@ public final class recipe_browser_index
         if (mc.level == null) { clear(); return; }
         RecipeManager manager = mc.level.getRecipeManager();
         String language = mc.options.languageCode;
+        Set<ResourceLocation> machine = machineRecipes();
+        long machineRevision = machineRevision();
+        boolean showAll = browser_cheat_client.showAll();
+        long cheatRevision = browser_cheat_client.indexRevision();
         if (lastManager == manager && lastRevision == recipe_unlock_client.revision() && lastLanguage.equals(language)
-                && lastUnlocked.equals(recipe_unlock_client.unlocked())) return;
+                && lastUnlocked.equals(recipe_unlock_client.unlocked())
+                && lastMachineRevision == machineRevision && lastMachineRecipes.equals(machine)
+                && lastShowAll == showAll && lastCheatRevision == cheatRevision) return;
         lastManager = manager; lastRevision = recipe_unlock_client.revision(); lastLanguage = language;
         lastUnlocked = recipe_unlock_client.unlocked();
-        List<Display> displays = new ArrayList<>();
-        List<ItemStack> outputs = new ArrayList<>();
-        for (ResourceLocation id : recipe_unlock_client.unlocked())
+        lastMachineRevision = machineRevision; lastMachineRecipes = machine;
+        lastShowAll = showAll; lastCheatRevision = cheatRevision;
+
+        List<Recipe<?>> sources = new ArrayList<>();
+        if (showAll) sources.addAll(manager.getRecipes());
+        else
         {
-            Recipe<?> recipe = manager.byKey(id).orElse(null);
-            if (recipe == null || !recipe_unlock_client.isUnlocked(id)) continue;
+            Set<ResourceLocation> effective = new LinkedHashSet<>(recipe_unlock_client.unlocked());
+            effective.addAll(machine);
+            for (ResourceLocation id : effective)
+            {
+                Recipe<?> recipe = manager.byKey(id).orElse(null);
+                if (recipe != null && (recipe_unlock_client.isUnlocked(id) || machine.contains(id))) sources.add(recipe);
+            }
+        }
+
+        List<Display> displays = new ArrayList<>();
+        Map<String, ItemStack> outputMap = new LinkedHashMap<>();
+        if (showAll)
+            for (ItemStack stack : browser_item_catalog.all())
+                if (!stack.isEmpty()) outputMap.putIfAbsent(browser_item_catalog.key(stack), stack.copyWithCount(1));
+
+        for (Recipe<?> recipe : sources)
+        {
             try
             {
                 Display display = null;
                 for (DisplayProvider provider : PROVIDERS)
                     if (provider.supports(recipe)) { display = provider.create(recipe, mc.level.registryAccess()); break; }
                 if (display == null) display = standard(recipe, mc.level.registryAccess());
+                List<Component> notes = new ArrayList<>(display.notes());
+                if (showAll) notes.add(tr("status.cheat"));
+                else if (!(recipe instanceof processing_recipe)) notes.add(tr("status.personal"));
+                String namespace = recipe.getId().getNamespace();
+                String mod = namespace.equals("minecraft") ? "Minecraft" : net.minecraftforge.fml.ModList.get()
+                        .getModContainerById(namespace).map(c -> c.getModInfo().getDisplayName())
+                        .filter(name -> !name.isBlank()).orElse(namespace);
+                notes.add(Component.translatable(KEY + "recipe_mod", mod));
+                display = new Display(display.recipe(), display.category(), display.title(), display.workstation(),
+                        display.slots(), display.outputs(), List.copyOf(notes), display.contentHeight());
                 displays.add(display);
                 for (ItemStack output : display.outputs())
-                    if (!output.isEmpty() && outputs.stream().noneMatch(s -> ItemStack.isSameItemSameTags(s, output)))
-                    { ItemStack entry = output.copy(); entry.setCount(1); outputs.add(entry); }
+                    if (!output.isEmpty())
+                        outputMap.putIfAbsent(browser_item_catalog.key(output), output.copyWithCount(1));
             }
             catch (RuntimeException exception)
             {
                 // One malformed third-party display must not make the player's inventory unusable.
-                com.mojang.logging.LogUtils.getLogger().warn("Cannot display unlocked recipe {}", id, exception);
+                com.mojang.logging.LogUtils.getLogger().warn("Cannot display recipe {}", recipe.getId(), exception);
             }
         }
         displays.sort(Comparator.comparing(d -> d.recipe().getId().toString()));
-        outputs.sort(Comparator.comparing(s -> s.getHoverName().getString(), String.CASE_INSENSITIVE_ORDER));
-        known = List.copyOf(displays); items = List.copyOf(outputs);
+        List<ItemStack> outputs = new ArrayList<>(outputMap.values());
+        outputs.sort(Comparator.comparing((ItemStack s) -> s.getHoverName().getString(), String.CASE_INSENSITIVE_ORDER)
+                .thenComparing(s -> BuiltInRegistries.ITEM.getKey(s.getItem()).toString())
+                .thenComparing(s -> s.hasTag() ? s.getTag().toString() : ""));
+        known = List.copyOf(displays); items = List.copyOf(outputs); SORTED.clear(); FINGERPRINTS.clear();
     }
 
     public static List<Display> find(ItemStack item, boolean uses)
@@ -129,82 +249,12 @@ public final class recipe_browser_index
         return true;
     }
 
-    private static Display standard(Recipe<?> recipe, RegistryAccess access)
+    private static Display standard(Recipe<?> recipe,RegistryAccess access)
     {
-        Display special = special(recipe);
-        if (special != null) return special;
-        ResourceLocation category = BuiltInRegistries.RECIPE_TYPE.getKey(recipe.getType());
-        if (category == null) category = recipe.getId();
-        String kind = category.getPath();
-        Component title = Component.translatable(KEY + "category." + kind);
-        if (!category.getNamespace().equals("minecraft") && !(recipe instanceof processing_recipe)) title = Component.literal(category.toString());
-        List<DisplaySlot> slots = new ArrayList<>();
-        List<ItemStack> outputs = new ArrayList<>();
-        List<Component> notes = new ArrayList<>();
-        ItemStack workstation = recipe.getToastSymbol();
-        int contentHeight = 90;
-        if (recipe instanceof processing_recipe processing)
-        {
-            title = Component.translatable(KEY + "category.processing");
-            workstation = new ItemStack(medical_blocks.SIMPLE_PROCESSING_TABLE.get());
-            add(slots, processing.tool(), 1, 4, 14, "tool", false);
-            if (processing.container() != null)
-                add(slots, processing.container().ingredient(), processing.container().count(), 34, 14, "container", false);
-            int i = 0;
-            for (processing_recipe.Material material : processing.materials())
-            { add(slots, material.ingredient(), material.count(), 4 + (i % 5) * 24, 49 + (i / 5) * 24, "material", false); i++; }
-            int outputY = 60 + ((i + 4) / 5) * 24;
-            addOutput(slots, outputs, processing.result(), 4, outputY, "result");
-            addOutput(slots, outputs, processing.returned(), 52, outputY, "returned");
-            addOutput(slots, outputs, processing.byproduct(), 100, outputY, "byproduct");
-            contentHeight = outputY + 27;
-            notes.add(Component.translatable(KEY + "tool_damage", processing.toolDamage()));
-            notes.add(Component.translatable(KEY + "time", processing.duration() / 20.0));
-        }
-        else if (recipe instanceof SmithingRecipe smithing)
-        {
-            Ingredient template = candidates(smithing::isTemplateIngredient);
-            Ingredient base = candidates(smithing::isBaseIngredient);
-            Ingredient addition = candidates(smithing::isAdditionIngredient);
-            add(slots, template, 1, 4, 18, "template", false);
-            add(slots, base, 1, 34, 18, "base", false);
-            add(slots, addition, 1, 64, 18, "addition", false);
-            ItemStack result = recipe.getResultItem(access);
-            if (result.isEmpty() && template.getItems().length > 0 && base.getItems().length > 0 && addition.getItems().length > 0)
-                result = smithing.assemble(new SimpleContainer(template.getItems()[0], base.getItems()[0], addition.getItems()[0]), access);
-            addOutput(slots, outputs, result, 118, 18, "result");
-        }
-        else if (recipe instanceof CraftingRecipe)
-        {
-            List<Ingredient> ingredients = recipe.getIngredients();
-            int recipeWidth = recipe instanceof IShapedRecipe<?> shaped ? shaped.getRecipeWidth() : 3;
-            int recipeHeight = recipe instanceof IShapedRecipe<?> shaped ? shaped.getRecipeHeight() : (ingredients.size() + 2) / 3;
-            int columns = Math.max(1, recipeWidth);
-            for (int i = 0; i < ingredients.size(); i++)
-                add(slots, ingredients.get(i), 1, 4 + (i % columns) * 20, 10 + (i / columns) * 20, "material", false);
-            int resultX = 18 + columns * 20;
-            addOutput(slots, outputs, recipe.getResultItem(access), resultX, 30, "result");
-            contentHeight = Math.max(80, recipeHeight * 20 + 20);
-            notes.add(Component.translatable(KEY + (recipe instanceof IShapedRecipe<?> ? "shaped" : "shapeless")));
-        }
-        else
-        {
-            List<Ingredient> ingredients = recipe.getIngredients();
-            int i = 0;
-            for (Ingredient ingredient : ingredients)
-            { add(slots, ingredient, 1, 4 + (i % 5) * 24, 10 + (i / 5) * 24, "material", false); i++; }
-            int resultY = 24 + ((i + 4) / 5) * 24;
-            addOutput(slots, outputs, recipe.getResultItem(access), 4, resultY, "result");
-            contentHeight = resultY + 30;
-            if (recipe instanceof AbstractCookingRecipe cooking)
-            {
-                notes.add(Component.translatable(KEY + "time", cooking.getCookingTime() / 20.0));
-                notes.add(Component.translatable(KEY + "experience", cooking.getExperience()));
-            }
-            else if (!(recipe instanceof StonecutterRecipe)) notes.add(Component.translatable(KEY + "generic"));
-        }
-        if (outputs.isEmpty()) notes.add(Component.translatable(KEY + "dynamic"));
-        return new Display(recipe, category, title, workstation, List.copyOf(slots), List.copyOf(outputs), List.copyOf(notes), contentHeight);
+        Display special=special(recipe);if(special!=null)return special;
+        Display result=com.damezame97.white_lily.recipebook.browser_recipe_display.build(recipe,access);
+        if(recipe instanceof processing_recipe processing){Component status=processingStatus(processing);if(status!=null){List<Component> notes=new ArrayList<>(result.notes());notes.add(0,status);return new Display(recipe,result.category(),result.title(),result.workstation(),result.slots(),result.outputs(),List.copyOf(notes),result.contentHeight());}}
+        return result;
     }
 
     /** Vanilla special recipes have empty getIngredients/getResultItem; these are illustrative rule displays. */

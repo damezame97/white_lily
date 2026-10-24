@@ -47,16 +47,10 @@ public class BasicMaterialsGameTests
                     "创造展示和搜索内容应包含：" + id);
             List<Component> tooltip = new ArrayList<>();
             item.appendHoverText(stack, helper.getLevel(), tooltip, TooltipFlag.Default.NORMAL);
-            helper.assertTrue(tooltip.size() == 1 && tooltip.get(0).equals(detail_tooltip.hint()),
-                    "材料默认只显示 Shift 提示：" + id);
+            helper.assertTrue(tooltip.isEmpty(), "删除氛围简介后不再显示无意义 Shift 提示：" + id);
             tooltip.clear();
             ((basic_material_item) item).appendDescription(tooltip, true);
-            helper.assertTrue(tooltip.size() == 3, "按住 Shift 应展开三行简介：" + id);
-            for (Component line : tooltip)
-            {
-                helper.assertTrue(Objects.equals(line.getStyle().getColor(), TextColor.fromRgb(0xAAAAAA)),
-                        "简介应使用普通灰色：" + id);
-            }
+            helper.assertTrue(tooltip.isEmpty(), "展开后也不显示空白详情：" + id);
         }
         for (var item : List.of(items.BLANK_PRESCRIPTION.get(), items.REVEALED_PRESCRIPTION.get()))
         {

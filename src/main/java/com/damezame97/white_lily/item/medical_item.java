@@ -16,7 +16,8 @@ public final class medical_item extends Item
     private final medical_actions.Kind kind;
     public medical_item(medical_actions.Kind kind)
     {
-        super(new Properties().stacksTo(kind == medical_actions.Kind.TEA ? 1 : 16));
+        // 茶与其余药剂/医疗用品统一为16；茶的“喝一瓶”由finishUsingItem只扣1并返瓶。
+        super(new Properties().stacksTo(16));
         this.kind = kind;
     }
     @Override public int getUseDuration(ItemStack stack)

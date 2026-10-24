@@ -253,14 +253,34 @@ public class MedicalGameTests
         san.setBaseValue(maximum-1);
         medical_actions.apply(p,medical_actions.Kind.TEA,p.getRandom());
         near(h,maximum,san_procedures.currentSan(p),"SAN恢复遵守属性上限");
+        ItemStack teaStack=new ItemStack(items.CALMING_FLOWER_TEA.get());
+        yes(h,teaStack.getMaxStackSize()==16,"花茶实际最大堆叠为16");
+        Player batchPlayer=player(h);
+        batchPlayer.getInventory().clearContent();
+        ItemStack batch=new ItemStack(items.CALMING_FLOWER_TEA.get(),16);
+        ItemStack batchResult=batch.finishUsingItem(batchPlayer.level(),batchPlayer);
+        yes(h,batchResult==batch&&batch.is(items.CALMING_FLOWER_TEA.get())&&batch.getCount()==15
+                        &&batchPlayer.getInventory().countItem(Items.GLASS_BOTTLE)==1,
+                "喝一组中的一瓶只减少1瓶并返还1个玻璃瓶，剩余15瓶不被覆盖");
+        Player fullBatchPlayer=player(h);
+        for(int slot=0;slot<36;slot++)fullBatchPlayer.getInventory().setItem(slot,new ItemStack(Items.DIRT,64));
+        int bottlesBefore=fullBatchPlayer.level().getEntitiesOfClass(net.minecraft.world.entity.item.ItemEntity.class,
+                fullBatchPlayer.getBoundingBox().inflate(4),entity->entity.getItem().is(Items.GLASS_BOTTLE)).size();
+        ItemStack fullBatch=new ItemStack(items.CALMING_FLOWER_TEA.get(),16);
+        ItemStack fullBatchResult=fullBatch.finishUsingItem(fullBatchPlayer.level(),fullBatchPlayer);
+        int bottlesAfter=fullBatchPlayer.level().getEntitiesOfClass(net.minecraft.world.entity.item.ItemEntity.class,
+                fullBatchPlayer.getBoundingBox().inflate(4),entity->entity.getItem().is(Items.GLASS_BOTTLE)).size();
+        yes(h,fullBatchResult==fullBatch&&fullBatch.getCount()==15
+                        &&fullBatchPlayer.getInventory().countItem(Items.GLASS_BOTTLE)==0&&bottlesAfter==bottlesBefore+1,
+                "背包满时仍只减少1瓶、剩余茶不被覆盖且空瓶安全掉落");
         for(int slot=0;slot<36;slot++)p.getInventory().setItem(slot,new ItemStack(Items.DIRT,64));
         ItemStack drink=new ItemStack(items.CALMING_FLOWER_TEA.get());
         yes(h,drink.getUseDuration()==32 && drink.getUseAnimation()==UseAnim.DRINK,"普通饮用32刻");
         ItemStack bottle=drink.finishUsingItem(p.level(),p);
         yes(h,bottle.is(Items.GLASS_BOTTLE)&&bottle.getCount()==1,"背包满时最后一杯的瓶子留手中");
         p.getAbilities().instabuild=true;
-        ItemStack creative=new ItemStack(items.CALMING_FLOWER_TEA.get());
-        yes(h,creative.finishUsingItem(p.level(),p)==creative&&creative.getCount()==1,"创造饮用不消耗或额外产瓶");
+        ItemStack creative=new ItemStack(items.CALMING_FLOWER_TEA.get(),16);
+        yes(h,creative.finishUsingItem(p.level(),p)==creative&&creative.getCount()==16,"创造饮用整组不消耗或额外产瓶");
         h.succeed();
     }
 

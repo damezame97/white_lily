@@ -1,0 +1,341 @@
+{
+  "conditional": [
+    {
+      "recipes": [
+        "minecraft:book"
+      ],
+      "seen": [
+        "minecraft:leather",
+        "minecraft:paper"
+      ]
+    },
+    {
+      "recipe_types": [
+        "crafting"
+      ],
+      "seen": [
+        "minecraft:white_dye"
+      ],
+      "inputs": [
+        "#forge:dyes"
+      ],
+      "outputs": [
+        "#minecraft:wool"
+      ],
+      "unlocked": [
+        "minecraft:white_wool_from_string"
+      ]
+    },
+    {
+      "recipe_types": [
+        "crafting"
+      ],
+      "seen": [
+        "minecraft:orange_dye"
+      ],
+      "inputs": [
+        "#forge:dyes"
+      ],
+      "outputs": [
+        "#minecraft:wool"
+      ],
+      "unlocked": [
+        "minecraft:white_wool_from_string"
+      ]
+    },
+    {
+      "recipe_types": [
+        "crafting"
+      ],
+      "seen": [
+        "minecraft:magenta_dye"
+      ],
+      "inputs": [
+        "#forge:dyes"
+      ],
+      "outputs": [
+        "#minecraft:wool"
+      ],
+      "unlocked": [
+        "minecraft:white_wool_from_string"
+      ]
+    },
+    {
+      "recipe_types": [
+        "crafting"
+      ],
+      "seen": [
+        "minecraft:light_blue_dye"
+      ],
+      "inputs": [
+        "#forge:dyes"
+      ],
+      "outputs": [
+        "#minecraft:wool"
+      ],
+      "unlocked": [
+        "minecraft:white_wool_from_string"
+      ]
+    },
+    {
+      "recipe_types": [
+        "crafting"
+      ],
+      "seen": [
+        "minecraft:yellow_dye"
+      ],
+      "inputs": [
+        "#forge:dyes"
+      ],
+      "outputs": [
+        "#minecraft:wool"
+      ],
+      "unlocked": [
+        "minecraft:white_wool_from_string"
+      ]
+    },
+    {
+      "recipe_types": [
+        "crafting"
+      ],
+      "seen": [
+        "minecraft:lime_dye"
+      ],
+      "inputs": [
+        "#forge:dyes"
+      ],
+      "outputs": [
+        "#minecraft:wool"
+      ],
+      "unlocked": [
+        "minecraft:white_wool_from_string"
+      ]
+    },
+    {
+      "recipe_types": [
+        "crafting"
+      ],
+      "seen": [
+        "minecraft:pink_dye"
+      ],
+      "inputs": [
+        "#forge:dyes"
+      ],
+      "outputs": [
+        "#minecraft:wool"
+      ],
+      "unlocked": [
+        "minecraft:white_wool_from_string"
+      ]
+    },
+    {
+      "recipe_types": [
+        "crafting"
+      ],
+      "seen": [
+        "minecraft:gray_dye"
+      ],
+      "inputs": [
+        "#forge:dyes"
+      ],
+      "outputs": [
+        "#minecraft:wool"
+      ],
+      "unlocked": [
+        "minecraft:white_wool_from_string"
+      ]
+    },
+    {
+      "recipe_types": [
+        "crafting"
+      ],
+      "seen": [
+        "minecraft:light_gray_dye"
+      ],
+      "inputs": [
+        "#forge:dyes"
+      ],
+      "outputs": [
+        "#minecraft:wool"
+      ],
+      "unlocked": [
+        "minecraft:white_wool_from_string"
+      ]
+    },
+    {
+      "recipe_types": [
+        "crafting"
+      ],
+      "seen": [
+        "minecraft:cyan_dye"
+      ],
+      "inputs": [
+        "#forge:dyes"
+      ],
+      "outputs": [
+        "#minecraft:wool"
+      ],
+      "unlocked": [
+        "minecraft:white_wool_from_string"
+      ]
+    },
+    {
+      "recipe_types": [
+        "crafting"
+      ],
+      "seen": [
+        "minecraft:purple_dye"
+      ],
+      "inputs": [
+        "#forge:dyes"
+      ],
+      "outputs": [
+        "#minecraft:wool"
+      ],
+      "unlocked": [
+        "minecraft:white_wool_from_string"
+      ]
+    },
+    {
+      "recipe_types": [
+        "crafting"
+      ],
+      "seen": [
+        "minecraft:blue_dye"
+      ],
+      "inputs": [
+        "#forge:dyes"
+      ],
+      "outputs": [
+        "#minecraft:wool"
+      ],
+      "unlocked": [
+        "minecraft:white_wool_from_string"
+      ]
+    },
+    {
+      "recipe_types": [
+        "crafting"
+      ],
+      "seen": [
+        "minecraft:brown_dye"
+      ],
+      "inputs": [
+        "#forge:dyes"
+      ],
+      "outputs": [
+        "#minecraft:wool"
+      ],
+      "unlocked": [
+        "minecraft:white_wool_from_string"
+      ]
+    },
+    {
+      "recipe_types": [
+        "crafting"
+      ],
+      "seen": [
+        "minecraft:green_dye"
+      ],
+      "inputs": [
+        "#forge:dyes"
+      ],
+      "outputs": [
+        "#minecraft:wool"
+      ],
+      "unlocked": [
+        "minecraft:white_wool_from_string"
+      ]
+    },
+    {
+      "recipe_types": [
+        "crafting"
+      ],
+      "seen": [
+        "minecraft:red_dye"
+      ],
+      "inputs": [
+        "#forge:dyes"
+      ],
+      "outputs": [
+        "#minecraft:wool"
+      ],
+      "unlocked": [
+        "minecraft:white_wool_from_string"
+      ]
+    },
+    {
+      "recipe_types": [
+        "crafting"
+      ],
+      "seen": [
+        "minecraft:black_dye"
+      ],
+      "inputs": [
+        "#forge:dyes"
+      ],
+      "outputs": [
+        "#minecraft:wool"
+      ],
+      "unlocked": [
+        "minecraft:white_wool_from_string"
+      ]
+    }
+  ],
+  "on_pickup": [
+    {
+      "item": "minecraft:leather",
+      "outputs": [
+        "minecraft:leather_helmet",
+        "minecraft:leather_chestplate",
+        "minecraft:leather_leggings",
+        "minecraft:leather_boots"
+      ],
+      "recipe_types": [
+        "crafting"
+      ]
+    },
+    {
+      "item": "#minecraft:wool",
+      "recipes": [
+        "minecraft:white_wool_from_string"
+      ],
+      "outputs": [
+        "#minecraft:wool_carpets",
+        "#minecraft:beds",
+        "white_lily:white_sleeping_bag"
+      ],
+      "recipe_types": [
+        "crafting"
+      ]
+    },
+    {
+      "item": "minecraft:string",
+      "recipes": [
+        "minecraft:white_wool_from_string"
+      ]
+    },
+    {
+      "item": "minecraft:sugar_cane",
+      "inputs": [
+        "minecraft:sugar_cane"
+      ],
+      "outputs": [
+        "minecraft:paper",
+        "minecraft:sugar"
+      ],
+      "recipe_types": [
+        "crafting"
+      ]
+    },
+    {
+      "outputs": [
+        "#forge:dyes"
+      ],
+      "items": [
+        "#white_lily:dye_sources",
+        "#forge:dyes"
+      ]
+    }
+  ]
+}

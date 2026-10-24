@@ -30,6 +30,7 @@ public final class processing_table_item extends BlockItem
     public void appendHoverText(ItemStack stack, @Nullable Level level, List<Component> tooltip, TooltipFlag flag)
     {
         super.appendHoverText(stack, level, tooltip, flag);
-        basic_material_item.appendDescription(tooltip, detail_tooltip.isExpanded(level), getDescriptionId(), 3);
+        // 外观叙述已移除；只保留自动加工、输出阻塞和进度重置等实际功能。
+        basic_material_item.appendDescription(tooltip, detail_tooltip.isExpanded(level), getDescriptionId(), false, 3);
     }
 }

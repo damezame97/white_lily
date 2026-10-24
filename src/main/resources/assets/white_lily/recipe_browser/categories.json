@@ -1,0 +1,219 @@
+{
+  "rules": [
+    {
+      "category": "herbs",
+      "items": [
+        "white_lily:bitterleaf",
+        "white_lily:yarrow",
+        "white_lily:calming_flower"
+      ]
+    },
+    {
+      "category": "medical",
+      "items": [
+        "white_lily:simple_bandage",
+        "white_lily:clean_fine_bandage",
+        "white_lily:bitterleaf_paste",
+        "white_lily:yarrow_dressing",
+        "white_lily:calming_flower_tea",
+        "white_lily:low_qualitypotion",
+        "minecraft:potion",
+        "minecraft:splash_potion",
+        "minecraft:lingering_potion"
+      ]
+    },
+    {
+      "category": "processing_tools",
+      "items": [
+        "white_lily:stone_mortar",
+        "white_lily:simple_processing_table"
+      ]
+    },
+    {
+      "category": "logs",
+      "tags": [
+        "minecraft:logs"
+      ]
+    },
+    {
+      "category": "planks",
+      "tags": [
+        "minecraft:planks"
+      ]
+    },
+    {
+      "category": "slabs",
+      "tags": [
+        "minecraft:slabs",
+        "forge:slabs"
+      ],
+      "kinds": [
+        "slab"
+      ]
+    },
+    {
+      "category": "stairs",
+      "tags": [
+        "minecraft:stairs",
+        "forge:stairs"
+      ],
+      "kinds": [
+        "stairs"
+      ]
+    },
+    {
+      "category": "doors",
+      "tags": [
+        "minecraft:doors",
+        "forge:doors"
+      ],
+      "kinds": [
+        "door"
+      ]
+    },
+    {
+      "category": "trapdoors",
+      "tags": [
+        "minecraft:trapdoors",
+        "forge:trapdoors"
+      ],
+      "kinds": [
+        "trapdoor"
+      ]
+    },
+    {
+      "category": "buttons",
+      "tags": [
+        "minecraft:buttons",
+        "forge:buttons"
+      ],
+      "kinds": [
+        "button"
+      ]
+    },
+    {
+      "category": "pressure_plates",
+      "tags": [
+        "minecraft:pressure_plates",
+        "forge:pressure_plates"
+      ],
+      "kinds": [
+        "pressure_plate"
+      ]
+    },
+    {
+      "category": "fences",
+      "tags": [
+        "minecraft:fences",
+        "forge:fences"
+      ],
+      "kinds": [
+        "fence"
+      ]
+    },
+    {
+      "category": "fence_gates",
+      "tags": [
+        "minecraft:fence_gates",
+        "forge:fence_gates"
+      ],
+      "kinds": [
+        "fence_gate"
+      ]
+    },
+    {
+      "category": "ores",
+      "tags": [
+        "forge:ores"
+      ]
+    },
+    {
+      "category": "nuggets",
+      "tags": [
+        "forge:nuggets"
+      ]
+    },
+    {
+      "category": "ingots",
+      "tags": [
+        "forge:ingots"
+      ]
+    },
+    {
+      "category": "gems",
+      "tags": [
+        "forge:gems"
+      ]
+    },
+    {
+      "category": "dusts",
+      "tags": [
+        "forge:dusts"
+      ],
+      "items": [
+        "white_lily:charcoal_powder"
+      ]
+    },
+    {
+      "category": "armor",
+      "tags": [
+        "forge:armors"
+      ],
+      "kinds": [
+        "armor"
+      ]
+    },
+    {
+      "category": "weapons",
+      "tags": [
+        "forge:tools/swords",
+        "forge:tools/bows",
+        "forge:tools/crossbows",
+        "forge:tools/tridents"
+      ],
+      "kinds": [
+        "weapon"
+      ],
+      "items": [
+        "tacz:modern_kinetic_gun"
+      ]
+    },
+    {
+      "category": "tools",
+      "tags": [
+        "forge:tools"
+      ],
+      "kinds": [
+        "tool"
+      ]
+    },
+    {
+      "category": "materials",
+      "items": [
+        "white_lily:coarse_cloth",
+        "white_lily:thin_cloth_strip",
+        "white_lily:cork_stopper",
+        "white_lily:beeswax_block",
+        "white_lily:blank_label",
+        "white_lily:hemp_seeds",
+        "white_lily:hemp_stalk",
+        "white_lily:plant_fiber",
+        "white_lily:wooden_tray",
+        "white_lily:clay_bowl",
+        "white_lily:glass_tube",
+        "white_lily:filter_paper",
+        "white_lily:desiccant_packet",
+        "white_lily:herbal_residue",
+        "white_lily:herbal_pouch",
+        "white_lily:blank_prescription",
+        "white_lily:revealed_prescription"
+      ]
+    },
+    {
+      "category": "food",
+      "kinds": [
+        "food"
+      ]
+    }
+  ]
+}

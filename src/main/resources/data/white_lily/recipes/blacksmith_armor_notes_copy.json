@@ -1,0 +1,11 @@
+{
+  "type": "white_lily:template_copy",
+  "template": "white_lily:blacksmith_armor_notes",
+  "ingredients": [
+    { "item": "white_lily:blacksmith_armor_notes" },
+    { "item": "minecraft:book" },
+    { "item": "minecraft:ink_sac" },
+    { "item": "minecraft:feather" }
+  ],
+  "result": { "item": "white_lily:blacksmith_armor_notes" }
+}

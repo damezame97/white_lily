@@ -1,0 +1,26 @@
+{
+  "type": "minecraft:block",
+  "pools": [
+    {
+      "conditions": [
+        {
+          "condition": "minecraft:survives_explosion"
+        },
+        {
+          "properties": {
+            "part": "head"
+          },
+          "condition": "minecraft:block_state_property",
+          "block": "white_lily:white_sleeping_bag"
+        }
+      ],
+      "rolls": 1,
+      "entries": [
+        {
+          "type": "minecraft:item",
+          "name": "white_lily:white_sleeping_bag"
+        }
+      ]
+    }
+  ]
+}

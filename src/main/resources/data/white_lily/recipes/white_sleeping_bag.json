@@ -1,0 +1,16 @@
+{
+  "key": {
+    "W": {
+      "tag": "minecraft:wool"
+    }
+  },
+  "category": "misc",
+  "result": {
+    "item": "white_lily:white_sleeping_bag",
+    "count": 1
+  },
+  "pattern": [
+    "WWW"
+  ],
+  "type": "minecraft:crafting_shaped"
+}

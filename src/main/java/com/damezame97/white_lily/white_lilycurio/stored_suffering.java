@@ -66,12 +66,7 @@ public class stored_suffering extends Item implements ICurioItem
             tooltip.add(detail_tooltip.hint());
             return;
         }
-        tooltip.add(Component.translatable(getDescriptionId() + ".flavor").withStyle(ChatFormatting.DARK_PURPLE));
-        // 每行单独构造组件，普通说明采用与项目其他材料相同的灰色，不继承风味行颜色。
-        for (int line = 1; line <= 4; line++)
-        {
-            tooltip.add(Component.translatable(getDescriptionId() + ".description." + line).withStyle(ChatFormatting.GRAY));
-        }
+        // 只保留当前机制的实际功能说明，不再显示风味或空白叙述行。
         for (int line = 1; line <= 4; line++)
         {
             tooltip.add(Component.translatable(getDescriptionId() + ".effect." + line).withStyle(ChatFormatting.GRAY));

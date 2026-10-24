@@ -172,7 +172,6 @@ public final class ProcessingMenuGameTests
             player.setPos(pos.getX() + 0.5, pos.getY() + 0.5, pos.getZ() + 0.5);
             menu = new processing_menu(22, player.getInventory(), table);
             player.containerMenu = menu;
-            table.authorizeInput(player);
         }
 
         void tick(int count)

@@ -215,6 +215,7 @@ public final class stored_suffering_events
             return;
         }
         float total = data.total();
+        com.damezame97.white_lily.capability.suffering_network.sync(serverPlayer, data, force);
         long tick = clock(player);
         if (force || Float.compare(total, data.lastDisplayed) != 0 || (total > 0 && tick >= data.nextDisplayTick))
         {

@@ -36,6 +36,25 @@ public final class processing_screen extends AbstractContainerScreen<processing_
         }).bounds(leftPos+92,topPos+96,130,18).tooltip(net.minecraft.client.gui.components.Tooltip.create(Component.translatable(KEY+"register_hint"))).build());
     }
 
+    @Override protected void containerTick()
+    {
+        super.containerTick();
+        if (minecraft == null || minecraft.player == null) return;
+        if (minecraft.player.containerMenu != menu || !menu.stillValid(minecraft.player))
+        {
+            processing_client_context.clear(menu.containerId);
+            onClose();
+        }
+    }
+
+    @Override public void removed()
+    {
+        // Opening the recipe-browser child screen temporarily replaces this screen; keep the
+        // machine context alive for that session. A real close/switch clears it in tick/onClose.
+        if (!recipe_browser.isOpeningChild()) processing_client_context.clear(menu.containerId);
+        super.removed();
+    }
+
     @Override
     public void render(GuiGraphics graphics, int mouseX, int mouseY, float partialTick)
     {
@@ -77,7 +96,6 @@ public final class processing_screen extends AbstractContainerScreen<processing_
             case 2 -> "blocked";
             case 3 -> "unregistered";
             case 4 -> "locked";
-            case 5 -> "owner_offline";
             default -> "idle";
         };
         graphics.drawWordWrap(font, Component.translatable(KEY + "status." + status), 8, 85, 214,

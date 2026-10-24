@@ -153,8 +153,12 @@ public final class RecipeUnlockGameTests
         CreativeModeTab tab = creative_tabs.RECIPE_BOOKS.get();
         tab.buildContents(new CreativeModeTab.ItemDisplayParameters(h.getLevel().enabledFeatures(), true, h.getLevel().registryAccess()));
         yes(h, tab.shouldDisplay() && tab.getIconItem().is(items.GOLDEN_SWORD_RECIPE_BOOK.get()), "配方书创造栏显示真实书图标");
-        yes(h, tab.getDisplayItems().size() == 1 && tab.getDisplayItems().iterator().next().is(items.GOLDEN_SWORD_RECIPE_BOOK.get()),
-                "范例书位于专属创造栏");
+        // 本轮明确把 7 本铁器知识书加入既有配方书栏；金剑书仍保留在首位。
+        yes(h, tab.getDisplayItems().size() == 8 && tab.getDisplayItems().iterator().next().is(items.GOLDEN_SWORD_RECIPE_BOOK.get()),
+                "金剑书与7本新知识书共用一个现有配方书栏，金剑书仍在首位");
+        yes(h, tab.getDisplayItems().stream().anyMatch(stack -> stack.is(items.BLACKSMITH_TOOLS_NOTES.get()))
+                        && tab.getDisplayItems().stream().anyMatch(stack -> stack.is(items.TRANSPORT_NOTES.get())),
+                "新知识书进入既有配方书栏");
         yes(h, tab.getSearchTabDisplayItems().stream().anyMatch(stack -> stack.is(items.GOLDEN_SWORD_RECIPE_BOOK.get())),
                 "范例书也进入创造搜索");
         for (String file : List.of("models/item/golden_sword_recipe_book.json", "textures/item/golden_sword_recipe_book.png"))

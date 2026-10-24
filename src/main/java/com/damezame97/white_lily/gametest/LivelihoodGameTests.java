@@ -2,6 +2,7 @@ package com.damezame97.white_lily.gametest;
 
 import com.damezame97.white_lily.item.basic_material_item;
 import com.damezame97.white_lily.item.creative_tabs;
+import com.damezame97.white_lily.item.detail_tooltip;
 import com.damezame97.white_lily.item.items;
 import com.damezame97.white_lily.white_lily;
 import com.google.gson.JsonParser;
@@ -48,17 +49,19 @@ public final class LivelihoodGameTests
                 && livelihood.getIconItem().is(items.HERBAL_POUCH.get()),"生计绿色标题和真实布包图标");
         var parameters = new CreativeModeTab.ItemDisplayParameters(h.getLevel().enabledFeatures(),true,h.getLevel().registryAccess());
         for(var tab:List.of(delicacies,livelihood,tests)){tab.buildContents(parameters);yes(h,tab.shouldDisplay(),"非空栏正常显示");}
-        List<Item> expected = List.of(items.HERBAL_POUCH.get(),items.INVESTIGATION_HANDBOOK.get(),items.SIMPLE_PROCESSING_TABLE.get(),items.STONE_MORTAR.get(),
+        List<Item> expected = List.of(items.HERBAL_POUCH.get(),items.INVESTIGATION_HANDBOOK.get(),items.SIMPLE_PROCESSING_TABLE.get(),items.STONE_MORTAR.get(),items.WHITE_SLEEPING_BAG.get(),
+                items.MAKESHIFT_IRON_PICKAXE.get(),items.MAKESHIFT_IRON_AXE.get(),items.MAKESHIFT_IRON_SHOVEL.get(),
+                items.MAKESHIFT_IRON_HOE.get(),items.MAKESHIFT_IRON_SWORD.get(),
                 items.HEMP_SEEDS.get(),items.HEMP_STALK.get(),items.BITTERLEAF.get(),items.YARROW.get(),items.CALMING_FLOWER.get(),
                 items.PLANT_FIBER.get(),items.COARSE_CLOTH.get(),items.THIN_CLOTH_STRIP.get(),items.WOODEN_TRAY.get(),items.CORK_STOPPER.get(),
                 items.BEESWAX_BLOCK.get(),items.CHARCOAL_POWDER.get(),items.CLAY_BOWL.get(),items.GLASS_TUBE.get(),items.FILTER_PAPER.get(),
                 items.DESICCANT_PACKET.get(),items.BLANK_LABEL.get(),items.BLANK_PRESCRIPTION.get(),items.REVEALED_PRESCRIPTION.get(),
                 items.SIMPLE_BANDAGE.get(),items.CLEAN_FINE_BANDAGE.get(),items.BITTERLEAF_PASTE.get(),items.YARROW_DRESSING.get(),
                 items.CALMING_FLOWER_TEA.get(),items.HERBAL_RESIDUE.get());
-        yes(h,livelihood.getDisplayItems().stream().map(ItemStack::getItem).toList().equals(expected),"生计29项顺序完整，手册靠前且原相对顺序不变");
+        yes(h,livelihood.getDisplayItems().stream().map(ItemStack::getItem).toList().equals(expected),"生计34项顺序完整，手册靠前、新增简易工具在工具段且原相对顺序不变");
         yes(h,delicacies.getDisplayItems().stream().map(ItemStack::getItem).toList().equals(
                 List.of(items.MAGIC_APPLE.get(),items.LOW_QUALITY_POTION.get(),items.STORED_SUFFERING.get())),"珍馐仅保留三件原物品");
-        yes(h,tests.getDisplayItems().size()==7 && tests.getIconItem().is(items.POLLUTION_DETECTOR.get()),"测试栏保留七件和原图标");
+        yes(h,tests.getDisplayItems().size()==19 && tests.getIconItem().is(items.POLLUTION_DETECTOR.get()),"测试栏包含原16件及3件状态工具，保留原图标");
         HashSet<Item> publicItems = new HashSet<>();
         for(var tab:List.of(delicacies,livelihood,tests))for(var stack:tab.getDisplayItems())
         {
@@ -67,19 +70,35 @@ public final class LivelihoodGameTests
         }
         for(var hidden:List.of(items.TAB_ICON.get(),items.DELAYED_HEALING_ICON.get(),items.FLESH_RING.get(),items.IMPROVE_BODY.get(),items.INVALID_PLACEHOLDER.get(),items.FATE_COMPASS.get()))
             yes(h,!publicItems.contains(hidden),"原隐藏图标和绑定饰品不暴露");
-        for(var item:List.of(items.PLANT_FIBER.get(),items.WOODEN_TRAY.get(),items.CLAY_BOWL.get(),items.GLASS_TUBE.get(),items.FILTER_PAPER.get(),
-                items.DESICCANT_PACKET.get(),items.HERBAL_RESIDUE.get(),items.HERBAL_POUCH.get()))
+        for(var item:List.of(items.PLANT_FIBER.get(),items.WOODEN_TRAY.get(),items.CLAY_BOWL.get(),items.GLASS_TUBE.get(),
+                items.FILTER_PAPER.get(),items.DESICCANT_PACKET.get(),items.HERBAL_RESIDUE.get()))
         {
-            ItemStack stack=new ItemStack(item);yes(h,stack.getMaxStackSize()==64&&!stack.isDamageableItem()&&!stack.isEdible()&&!stack.hasFoil(),"新增普通材料定义");
+            ItemStack stack=new ItemStack(item);
+            yes(h,stack.getMaxStackSize()==64&&!stack.isDamageableItem()&&!stack.isEdible()&&!stack.hasFoil(),"新增普通材料定义");
             yes(h,stack.getHoverName().getStyle().getColor()==null,"栏标题绿色不污染物品名");
-            List<Component> lines=new ArrayList<>();((basic_material_item)item).appendDescription(lines,true);
-            for(var line:lines)yes(h,TextColor.fromLegacyFormat(ChatFormatting.GRAY).equals(line.getStyle().getColor())
-                    &&!line.getString().contains("item.white_lily."),"展开说明为普通灰色且语言键已解析");
+            List<Component> lines=new ArrayList<>();
+            item.appendHoverText(stack,h.getLevel(),lines,TooltipFlag.Default.NORMAL);
+            yes(h,lines.isEmpty(),"无功能详情时不显示Shift提示");
+            ((basic_material_item)item).appendDescription(lines,true);
+            yes(h,lines.isEmpty(),"无功能详情时展开也没有空白说明");
         }
+        ItemStack pouch=new ItemStack(items.HERBAL_POUCH.get());
+        yes(h,pouch.getMaxStackSize()==64&&!pouch.isDamageableItem(),"药草布包仍为普通材料");
+        List<Component> pouchLines=new ArrayList<>();
+        ((basic_material_item)items.HERBAL_POUCH.get()).appendDescription(pouchLines,true);
+        yes(h,pouchLines.size()==1&&TextColor.fromLegacyFormat(ChatFormatting.GRAY).equals(pouchLines.get(0).getStyle().getColor()),
+                "布包只保留当前无储物功能的实际状态");
         ItemStack mortar=new ItemStack(items.STONE_MORTAR.get());
         yes(h,mortar.getMaxStackSize()==1&&mortar.getMaxDamage()==128,"研钵堆叠1、真实耐久128");
-        List<Component> lines=new ArrayList<>();items.SIMPLE_PROCESSING_TABLE.get().appendHoverText(new ItemStack(items.SIMPLE_PROCESSING_TABLE.get()),h.getLevel(),lines,TooltipFlag.Default.NORMAL);
-        yes(h,lines.size()==1,"方块物品默认沿用单条Shift提示");
+        List<Component> mortarLines=new ArrayList<>();
+        ((basic_material_item)items.STONE_MORTAR.get()).appendDescription(mortarLines,true);
+        yes(h,mortarLines.size()==2,"研钵只保留工具槽与耐久两条功能说明");
+        List<Component> lines=new ArrayList<>();
+        items.SIMPLE_PROCESSING_TABLE.get().appendHoverText(new ItemStack(items.SIMPLE_PROCESSING_TABLE.get()),h.getLevel(),lines,TooltipFlag.Default.NORMAL);
+        yes(h,lines.size()==1&&lines.get(0).equals(detail_tooltip.hint()),"加工台仍以单条Shift提示折叠功能说明");
+        List<Component> tableLines=new ArrayList<>();
+        basic_material_item.appendDescription(tableLines,true,"block.white_lily.simple_processing_table",false,3);
+        yes(h,tableLines.size()==3,"加工台展开只保留自动加工/输出阻塞/进度重置三条功能说明");
         h.succeed();
     }
 
@@ -116,7 +135,18 @@ public final class LivelihoodGameTests
                 yes(h,lang.has(creative_tabs.MISGUIDED_LIVELIHOOD_TITLE_KEY)&&!lang.get(creative_tabs.MISGUIDED_LIVELIHOOD_TITLE_KEY).getAsString().contains("§"),"新增标题翻译不含颜色控制符");
                 for(Item item:List.of(items.PLANT_FIBER.get(),items.WOODEN_TRAY.get(),items.STONE_MORTAR.get(),items.CLAY_BOWL.get(),items.GLASS_TUBE.get(),
                         items.FILTER_PAPER.get(),items.DESICCANT_PACKET.get(),items.HERBAL_RESIDUE.get(),items.HERBAL_POUCH.get(),items.SIMPLE_PROCESSING_TABLE.get()))
-                {yes(h,lang.has(item.getDescriptionId()),"中英名称完整");for(int line=1;line<=3;line++)yes(h,lang.has(item.getDescriptionId()+".description."+line),"中英说明完整");}
+                {
+                    String key=item.getDescriptionId();
+                    yes(h,lang.has(key),"中英名称完整");
+                    for(int line=1;line<=3;line++) yes(h,!lang.has(key+".description."+line),"氛围简介键已删除："+key);
+                    int usages=item==items.STONE_MORTAR.get()?2:item==items.HERBAL_POUCH.get()?1:item==items.SIMPLE_PROCESSING_TABLE.get()?3:0;
+                    for(int line=1;line<=usages;line++)
+                    {
+                        String usage=key+".usage."+line;
+                        yes(h,lang.has(usage)&&!lang.get(usage).getAsString().isBlank(),"实际功能说明保留且非空："+usage);
+                    }
+                    yes(h,usages==0?!lang.has(key+".usage.1"):!lang.has(key+".usage."+(usages+1)),"不遗留多余功能键："+key);
+                }
             }catch(java.io.IOException error){throw new RuntimeException(error);}
         }
         h.succeed();

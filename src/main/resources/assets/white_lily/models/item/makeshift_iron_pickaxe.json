@@ -1,0 +1,6 @@
+{
+  "parent": "minecraft:item/handheld",
+  "textures": {
+    "layer0": "white_lily:item/makeshift_iron_pickaxe"
+  }
+}
