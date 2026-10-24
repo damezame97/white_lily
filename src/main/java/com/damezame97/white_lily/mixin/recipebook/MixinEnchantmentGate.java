@@ -9,6 +9,6 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 public abstract class MixinEnchantmentGate {
     @Inject(method="clickMenuButton",at=@At("HEAD"),cancellable=true)
     private void whiteLily$enchant(Player player,int button,CallbackInfoReturnable<Boolean> callback) {
-        if(!recipe_unlocks.isUnlocked(player,recipe_menu_gate.operation("enchanting"))) callback.setReturnValue(false);
+        if(!recipe_menu_gate.permitted(player,recipe_menu_gate.operation("enchanting"))) callback.setReturnValue(false);
     }
 }

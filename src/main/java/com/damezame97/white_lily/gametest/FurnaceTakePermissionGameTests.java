@@ -19,7 +19,7 @@ import net.minecraftforge.gametest.PrefixGameTestTemplate;
 
 import static com.damezame97.white_lily.gametest.MedicalGameTests.yes;
 
-/** Furnace cooking stays owner-gated, but finished output is ordinary shared loot. */
+/** 熔炉属于解锁范围外：冶炼与取货都与原版一致，不再绑定操作者。 */
 @GameTestHolder("white_lily")
 @PrefixGameTestTemplate(false)
 @SuppressWarnings("unused")
@@ -46,7 +46,9 @@ public final class FurnaceTakePermissionGameTests
             viewer.containerMenu = menu;
 
             yes(helper, !recipe_unlocks.isUnlocked(viewer, id("cooked_beef")), "viewer does not personally know the cooking recipe");
-            yes(helper, !recipe_machine_owner.allowed(furnace, id("cooked_beef")), "fixture machine has no usable owner permission");
+            yes(helper, !recipe_unlocks.requiresUnlock(viewer, id("cooked_beef")), "熔炉配方不在解锁范围内");
+            yes(helper, recipe_machine_owner.allowed(furnace, id("cooked_beef")), "冶炼不再检查任何操作者或解锁权限");
+            yes(helper, !furnace.getPersistentData().hasUUID("white_lily_recipe_operator"), "不再给熔炉写入操作者绑定");
             menu.clicked(2, 0, ClickType.PICKUP, viewer);
             yes(helper, menu.getCarried().is(Items.COOKED_BEEF) && menu.getCarried().getCount() == 2,
                     "normal click takes the finished result without owner or recipe permission");

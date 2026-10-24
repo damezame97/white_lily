@@ -147,6 +147,25 @@ public final class RecipeUnlockGameTests
         h.succeed();
     }
 
+    private static ResourceLocation id(String path) { return ResourceLocation.fromNamespaceAndPath("minecraft", path); }
+
+    @GameTest(template = "empty")
+    public static void recipeBookOnlyDropsInScopeRecipes(GameTestHelper h)
+    {
+        Fixture player = new Fixture(h);
+        recipe_unlocks.initialize(player);
+        Recipe<?> smelting = h.getLevel().getRecipeManager().byKey(id("cooked_beef")).orElseThrow();
+        Recipe<?> crafting = h.getLevel().getRecipeManager().byKey(GOLD).orElseThrow();
+        player.getRecipeBook().add(smelting);
+        player.getRecipeBook().add(crafting);
+        yes(h, !recipe_unlocks.requiresUnlock(player, id("cooked_beef")), "熔炉配方不在解锁范围内");
+        yes(h, recipe_unlocks.requiresUnlock(player, GOLD), "工作台配方仍在解锁范围内");
+        recipe_unlocks.sync(player);
+        yes(h, player.getRecipeBook().contains(smelting), "范围外配方不再被配方书剔除");
+        yes(h, !player.getRecipeBook().contains(crafting), "范围内配方未解锁时仍被剔除");
+        h.succeed();
+    }
+
     @GameTest(template = "empty")
     public static void recipeBookCreativeTabAndTextureAreShipped(GameTestHelper h)
     {

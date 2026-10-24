@@ -10,7 +10,12 @@ import net.minecraftforge.event.entity.player.PlayerInteractEvent;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
 import net.minecraftforge.fml.common.Mod;
 
-/** Operator identity for the explicitly supported cooking machines, saved with that block entity. */
+/**
+ * 非范围内工作方块的操作者绑定。
+ *
+ * <p>熔炉系、煋造台与葡萄酒机器已经不在「配方解锁与个人进度」的范围里，
+ * 行为与原版一致；这里的绑定与校验保留为空实现，避免旧存档 NBT 逻辑被误用。</p>
+ */
 @Mod.EventBusSubscriber(modid="white_lily")
 public final class recipe_machine_owner {
     private static final String OWNER="white_lily_recipe_operator";
@@ -20,9 +25,7 @@ public final class recipe_machine_owner {
             || machine.getClass().getName().equals("net.satisfy.vinery.core.block.entity.ApplePressBlockEntity");
     }
     public static void bind(BlockEntity machine,Player player) {
-        if(player.level().isClientSide || !supported(machine)) return;
-        var tag=machine.getPersistentData();
-        if(!tag.hasUUID(OWNER) || idle(machine)) { tag.putUUID(OWNER,player.getUUID()); machine.setChanged(); }
+        // 范围外的工作方块不再记录操作者，与原版一致。
     }
     private static boolean idle(BlockEntity machine) {
         if(!(machine instanceof Container container)) return false;
@@ -31,11 +34,9 @@ public final class recipe_machine_owner {
         for(int i=0;i<container.getContainerSize();i++) if(!container.getItem(i).isEmpty()) return false;
         return true;
     }
+    /** 范围外的工作方块不需要解锁，永远放行。 */
     public static boolean allowed(BlockEntity machine,ResourceLocation recipe) {
-        if(machine.getLevel()==null || machine.getLevel().isClientSide || machine.getLevel().getServer()==null) return false;
-        var tag=machine.getPersistentData(); if(!tag.hasUUID(OWNER)) return false;
-        ServerPlayer player=machine.getLevel().getServer().getPlayerList().getPlayer(tag.getUUID(OWNER));
-        return player!=null && player.isAlive() && recipe_unlocks.isUnlocked(player,recipe);
+        return true;
     }
     @SubscribeEvent public static void open(PlayerContainerEvent.Open event) {
         if(!(event.getEntity() instanceof ServerPlayer)) return;

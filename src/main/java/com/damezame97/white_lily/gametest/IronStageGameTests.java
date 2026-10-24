@@ -557,13 +557,13 @@ public final class IronStageGameTests
     }
 
     @GameTest(template = "empty")
-    public static void stonecutterOperationAndConcreteRecipeRemainSeparate(GameTestHelper h)
+    public static void stonecutterAndAnvilNoLongerRequireUnlocks(GameTestHelper h)
     {
         try (var scope = new ProcessingTestPlayers(h))
         {
             ServerPlayer p = ProcessingTestPlayers.create(h);
             ResourceLocation specific = stonecuttingRecipe(h, Items.STONE);
-            yes(h, recipe_unlocks.unlock(p, specific), "先只掌握一种具体切石配方");
+            yes(h, !unlocked(p, specific), "玩家没有这条切石配方");
             BlockPos pos = h.absolutePos(new BlockPos(2, 1, 2));
             h.getLevel().setBlockAndUpdate(pos, Blocks.STONECUTTER.defaultBlockState());
             p.setPos(pos.getX() + 0.5, pos.getY() + 1.0, pos.getZ() + 0.5);
@@ -573,34 +573,39 @@ public final class IronStageGameTests
             int index = menu.getRecipes().indexOf(h.getLevel().getRecipeManager().byKey(specific).orElseThrow());
             yes(h, index >= 0, "切石机加载具体配方");
             menu.clickMenuButton(p, index);
-            yes(h, !recipe_menu_gate.canTake(menu, menu.getSlot(1), p), "有具体配方但无切石机操作权限仍不能取货");
-            yes(h, menu.quickMoveStack(p, 1).isEmpty(), "Shift同样被设备操作权限拦截");
-
-            read(p, items.STONECUTTER_NOTES.get());
-            yes(h, unlocked(p, recipe_menu_gate.operation("stonecutter")), "切石机书开放设备操作");
-            yes(h, recipe_menu_gate.canTake(menu, menu.getSlot(1), p), "设备操作+具体配方都满足时可取货");
+            yes(h, !recipe_unlocks.requiresUnlock(p, specific), "切石配方不在解锁范围内");
+            yes(h, recipe_menu_gate.canTake(menu, menu.getSlot(1), p), "切石机不再要求任何解锁");
             ItemStack result = menu.getSlot(1).getItem().copy();
+            yes(h, !result.isEmpty(), "切石机照常产出结果");
             yes(h, !menu.quickMoveStack(p, 1).isEmpty() && p.getInventory().countItem(result.getItem()) > 0,
-                    "实际Shift提交路径可取出已授权结果");
-            ResourceLocation another = stonecuttingRecipeOtherThan(h, specific);
-            yes(h, another == null || !unlocked(p, another), "设备权限不放开其他具体切石配方");
+                    "未解锁也能直接取走切石结果");
         }
         h.succeed();
     }
 
     @GameTest(template = "empty")
-    public static void anvilBookUnlocksRealAnvilOperationWithoutRecipeFiction(GameTestHelper h)
+    public static void anvilIsVanillaAndBookStillGrantsItsCraftingRecipe(GameTestHelper h)
     {
         try (var scope = new ProcessingTestPlayers(h))
         {
             ServerPlayer p = ProcessingTestPlayers.create(h);
+            p.experienceLevel = 50;
+            yes(h, !unlocked(p, id("anvil")), "尚未掌握铁砧的制作配方");
             AnvilMenu menu = new AnvilMenu(7, p.getInventory(), ContainerLevelAccess.NULL);
-            menu.getSlot(2).set(new ItemStack(Items.IRON_PICKAXE));
-            yes(h, !recipe_menu_gate.canTake(menu, menu.getSlot(2), p), "未掌握铁砧操作时结果槽不可取");
+            p.containerMenu = menu;
+            ItemStack damaged = new ItemStack(Items.IRON_PICKAXE);
+            damaged.setDamageValue(100);
+            menu.getSlot(0).set(damaged);
+            menu.getSlot(1).set(new ItemStack(Items.IRON_INGOT));
+            menu.createResult();
+            ItemStack repaired = menu.getSlot(2).getItem();
+            yes(h, !repaired.isEmpty() && repaired.getDamageValue() < 100, "铁砧照常产出修复结果");
+            yes(h, recipe_menu_gate.canTake(menu, menu.getSlot(2), p), "铁砧结果不再需要解锁");
+            menu.clicked(2, 0, ClickType.PICKUP, p);
+            yes(h, menu.getCarried().is(Items.IRON_PICKAXE) && menu.getSlot(0).getItem().isEmpty(), "铁砧结果可以正常取走");
+            menu.setCarried(ItemStack.EMPTY);
             read(p, items.BLACKSMITH_FORGING_NOTES.get());
-            yes(h, unlocked(p, id("anvil")) && unlocked(p, recipe_menu_gate.operation("anvil"))
-                            && recipe_menu_gate.canTake(menu, menu.getSlot(2), p),
-                    "锻造书同时开放铁砧制作与操作，且沿用正常铁砧结果槽");
+            yes(h, unlocked(p, id("anvil")), "锻造书仍授予铁砧的制作配方");
             for (String fake : List.of("chipped_anvil", "damaged_anvil"))
                 yes(h, h.getLevel().getRecipeManager().byKey(id(fake)).isEmpty(), "不存在虚构铁砧制作配方：" + fake);
         }

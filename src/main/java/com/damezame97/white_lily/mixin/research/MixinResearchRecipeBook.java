@@ -19,12 +19,14 @@ import java.util.Collection;
 @Mixin(ServerRecipeBook.class)
 public abstract class MixinResearchRecipeBook
 {
-    /** 同时防止旧解锁进度、配方命令或其他解锁通知提前公开研究配方。 */
+    /** 同时防止旧解锁进度、配方命令或其他解锁通知提前公开研究配方。
+     *  只过滤解锁范围内的配方（工作台/四格）；熔炉等范围外配方与原版一致。 */
     @ModifyVariable(method = "addRecipes", at = @At("HEAD"), argsOnly = true, ordinal = 0)
     private Collection<Recipe<?>> whiteLily$researchAwards(Collection<Recipe<?>> recipes, Collection<Recipe<?>> ignored,
                                                          ServerPlayer player)
     {
-        return recipes.stream().filter(recipe -> com.damezame97.white_lily.recipebook.recipe_unlocks.isUnlocked(player,recipe.getId())).toList();
+        return recipes.stream().filter(recipe -> !com.damezame97.white_lily.recipebook.recipe_unlocks.requiresUnlock(player,recipe.getId())
+                || com.damezame97.white_lily.recipebook.recipe_unlocks.isUnlocked(player,recipe.getId())).toList();
     }
 
     @Inject(method = "sendInitialRecipeBook", at = @At("HEAD"))
@@ -39,7 +41,8 @@ public abstract class MixinResearchRecipeBook
             ResourceLocation id = ResourceLocation.tryParse(known.getString(index));
             if (id == null) continue;
             player.getServer().getRecipeManager().byKey(id).ifPresent(recipe -> {
-                if (!com.damezame97.white_lily.recipebook.recipe_unlocks.isUnlocked(player,id)) book.remove(recipe);
+                if (com.damezame97.white_lily.recipebook.recipe_unlocks.requiresUnlock(player,id)
+                        && !com.damezame97.white_lily.recipebook.recipe_unlocks.isUnlocked(player,id)) book.remove(recipe);
             });
         }
     }

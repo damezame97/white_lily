@@ -53,6 +53,24 @@ public final class recipe_unlocks {
         tag.put("recipes",recipes); tag.put("seen_items",seen); tag.putLong("revision",data.revision); tag.putLong("generation",data.generation);
         persisted(player).put(DATA_KEY,tag);
     }
+    /** 解锁限制只覆盖原版工作台、原版四格合成与简易处理台；其余工作方块与原版一致。 */
+    public static boolean gatedMenu(net.minecraft.world.inventory.AbstractContainerMenu menu) {
+        return menu instanceof net.minecraft.world.inventory.CraftingMenu
+                || menu instanceof net.minecraft.world.inventory.InventoryMenu
+                || menu instanceof com.damezame97.white_lily.processing.processing_menu;
+    }
+    /**
+     * 这条配方是否属于解锁范围。
+     *
+     * <p>范围外的配方（熔炉/烟熏炉/高炉/切石机/铁砧/酿造/发酵/榨汁/枪械台/附魔台/铭刻台等）
+     * 一律不需要解锁，各处的门控要先用它判断再决定是否拒绝。</p>
+     */
+    public static boolean requiresUnlock(Player player,ResourceLocation id) {
+        if(player==null || id==null) return false;
+        if(research_catalog.recipeOwners().containsKey(id)) return true;
+        var recipe=player.level().getRecipeManager().byKey(id).orElse(null);
+        return recipe instanceof net.minecraft.world.item.crafting.CraftingRecipe;
+    }
     public static boolean isUnlocked(Player player,ResourceLocation id) {
         if(player==null || id==null) return false;
         if(player.level().isClientSide) return recipe_unlock_client.isUnlocked(id);
@@ -153,7 +171,8 @@ public final class recipe_unlocks {
         List<Recipe<?>> add=new ArrayList<>(),remove=new ArrayList<>();
         for(Recipe<?> recipe:player.level().getRecipeManager().getRecipes()) {
             if(allowed.contains(recipe.getId())) { if(!player.getRecipeBook().contains(recipe)) add.add(recipe); }
-            else if(player.getRecipeBook().contains(recipe)) remove.add(recipe);
+            // 只收回范围内（工作台/四格/处理台）的配方；其余工作方块的配方书保持原版。
+            else if(requiresUnlock(player,recipe.getId()) && player.getRecipeBook().contains(recipe)) remove.add(recipe);
         }
         if(!remove.isEmpty()) player.resetRecipes(remove);
         if(!add.isEmpty()) player.awardRecipes(add);

@@ -11,6 +11,6 @@ public abstract class MixinInscriptionCommitGate {
     @Inject(method="doInscription",at=@At("HEAD"),cancellable=true,remap=false)
     private void whiteLily$inscriptionCommit(int index,CallbackInfo callback) {
         Player player=recipe_menu_gate.owner((AbstractContainerMenu)(Object)this);
-        if(player==null || !recipe_unlocks.isUnlocked(player,recipe_menu_gate.operation("inscription"))) callback.cancel();
+        if(player==null || !recipe_menu_gate.permitted(player,recipe_menu_gate.operation("inscription"))) callback.cancel();
     }
 }
