@@ -39,9 +39,12 @@ public final class recipe_browser_index
     }
     private static final List<DisplayProvider> PROVIDERS = new ArrayList<>();
     private static RecipeManager lastManager;
+    private static long lastRecipeEpoch = Long.MIN_VALUE;
+    private static long lastDeviceRevision = Long.MIN_VALUE;
     private static long lastRevision = Long.MIN_VALUE;
     private static String lastLanguage = "";
     private static Set<ResourceLocation> lastUnlocked = Set.of();
+    private static Set<ResourceLocation> lastViewable = Set.of();
     private static Set<ResourceLocation> lastMachineRecipes = Set.of();
     private static long lastMachineRevision = Long.MIN_VALUE;
     private static boolean lastShowAll;
@@ -50,7 +53,7 @@ public final class recipe_browser_index
     private static List<ItemStack> items = List.of();
     private static final Map<browser_order.Mode,List<ItemStack>> SORTED=new EnumMap<>(browser_order.Mode.class);
     private static final Map<Recipe<?>,String> FINGERPRINTS=new IdentityHashMap<>();
-    public static String recipeFingerprint(ResourceLocation id){var mc=Minecraft.getInstance();var r=mc.level==null?null:mc.level.getRecipeManager().byKey(id).orElse(null);return r==null?"":FINGERPRINTS.computeIfAbsent(r,browser_transfer::fingerprint);}
+    public static String recipeFingerprint(ResourceLocation id){var mc=Minecraft.getInstance();var r=machine_view_client.find(id);if(r==null)r=mc.level==null?null:mc.level.getRecipeManager().byKey(id).orElse(null);return r==null?"":FINGERPRINTS.computeIfAbsent(r,browser_transfer::fingerprint);}
     public static String modName(ItemStack stack){String namespace=BuiltInRegistries.ITEM.getKey(stack.getItem()).getNamespace();return namespace.equals("minecraft")?"Minecraft":net.minecraftforge.fml.ModList.get().getModContainerById(namespace).map(m->m.getModInfo().getDisplayName()).filter(name->!name.isBlank()).orElse(namespace);}
     public static List<ItemStack> sortedItems(browser_order.Mode mode)
     {
@@ -71,7 +74,7 @@ public final class recipe_browser_index
     { refresh(); return items; }
     public static void clear()
     {
-        lastManager = null; lastRevision = Long.MIN_VALUE; lastUnlocked = Set.of();
+        lastManager = null; lastRevision = Long.MIN_VALUE; lastUnlocked = Set.of(); lastViewable = Set.of();
         lastMachineRecipes = Set.of(); lastMachineRevision = Long.MIN_VALUE;
         lastShowAll = false; lastCheatRevision = Long.MIN_VALUE;
         known = List.of(); items = List.of();SORTED.clear();FINGERPRINTS.clear();
@@ -129,7 +132,9 @@ public final class recipe_browser_index
         long revision = recipe_unlock_client.revision();
         var context = machineContext();
         if (context != null) revision = revision * 31L + context.revision();
-        return revision * 31L + browser_cheat_client.revision();
+        var level = Minecraft.getInstance().level;
+        long epoch = level == null ? 0 : ((com.damezame97.white_lily.machine.recipe_epoch) level.getRecipeManager()).whiteLily$recipeEpoch();
+        return ((revision * 31L + browser_cheat_client.revision()) * 31L + epoch) * 31L + machine_view_client.revision();
     }
 
     @Nullable public static Component processingStatus(processing_recipe recipe)
@@ -154,30 +159,43 @@ public final class recipe_browser_index
         Minecraft mc = Minecraft.getInstance();
         if (mc.level == null) { clear(); return; }
         RecipeManager manager = mc.level.getRecipeManager();
+        long epoch = ((com.damezame97.white_lily.machine.recipe_epoch) manager).whiteLily$recipeEpoch();
         String language = mc.options.languageCode;
         Set<ResourceLocation> machine = machineRecipes();
         long machineRevision = machineRevision();
         boolean showAll = browser_cheat_client.showAll();
         long cheatRevision = browser_cheat_client.indexRevision();
-        if (lastManager == manager && lastRevision == recipe_unlock_client.revision() && lastLanguage.equals(language)
-                && lastUnlocked.equals(recipe_unlock_client.unlocked())
+        Set<ResourceLocation> viewable = recipe_unlock_client.viewable();
+        if (lastManager == manager && lastRecipeEpoch == epoch && lastDeviceRevision == machine_view_client.revision() && lastRevision == recipe_unlock_client.revision() && lastLanguage.equals(language)
+                && lastUnlocked.equals(recipe_unlock_client.unlocked()) && lastViewable.equals(viewable)
                 && lastMachineRevision == machineRevision && lastMachineRecipes.equals(machine)
                 && lastShowAll == showAll && lastCheatRevision == cheatRevision) return;
-        lastManager = manager; lastRevision = recipe_unlock_client.revision(); lastLanguage = language;
-        lastUnlocked = recipe_unlock_client.unlocked();
+        lastManager = manager; lastRecipeEpoch = epoch; lastRevision = recipe_unlock_client.revision(); lastLanguage = language;
+        lastDeviceRevision = machine_view_client.revision();
+        lastUnlocked = recipe_unlock_client.unlocked(); lastViewable = viewable;
         lastMachineRevision = machineRevision; lastMachineRecipes = machine;
         lastShowAll = showAll; lastCheatRevision = cheatRevision;
 
         List<Recipe<?>> sources = new ArrayList<>();
-        if (showAll) sources.addAll(manager.getRecipes());
+        if (showAll) {
+            for (Recipe<?> recipe : manager.getRecipes())
+                if (!com.damezame97.white_lily.machine.machine_rules.cooking(recipe)) sources.add(recipe);
+            sources.addAll(machine_view_client.recipes());
+        }
         else
         {
+            // Device-view rights are applied before outputs are aggregated. Cooking recipes are
+            // views, not personal crafting unlocks, so they are not added to the unlock snapshot.
+            for (Recipe<?> recipe : machine_view_client.recipes())
+                if (com.damezame97.white_lily.machine.machine_rules.cooking(recipe)
+                        && viewable.contains(recipe.getId())) sources.add(recipe);
             Set<ResourceLocation> effective = new LinkedHashSet<>(recipe_unlock_client.unlocked());
             effective.addAll(machine);
             for (ResourceLocation id : effective)
             {
                 Recipe<?> recipe = manager.byKey(id).orElse(null);
-                if (recipe != null && (recipe_unlock_client.isUnlocked(id) || machine.contains(id))) sources.add(recipe);
+                if (recipe != null && !com.damezame97.white_lily.machine.machine_rules.cooking(recipe)
+                        && (recipe_unlock_client.isUnlocked(id) || machine.contains(id))) sources.add(recipe);
             }
         }
 

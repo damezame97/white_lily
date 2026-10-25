@@ -9,6 +9,8 @@
     "MixinDamageSource",
     "MixinFoodData",
     "MixinFoodCapacity",
+    "MixinMachineRecipeManager",
+    "MixinCookingRuleReload",
     "MixinFriendlyByteBuf",
     "MixinInventory",
     "MixinItemStack",
@@ -40,7 +42,8 @@
     "client.MixinTitleScreen",
     "client.MixinInfectionBlindness",
     "client.MixinRecipeBrowserContainer",
-    "client.MixinRecipeBrowserTooltip"
+    "client.MixinRecipeBrowserTooltip",
+    "client.MixinEffectRenderingInventoryScreen"
   ],
   "injectors": {
     "defaultRequire": 1

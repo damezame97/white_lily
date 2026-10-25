@@ -1,0 +1,27 @@
+{
+  "deny": [],
+  "device": "minecraft:furnace",
+  "mode": "whitelist",
+  "copies": [],
+  "allow": [
+    "minecraft:baked_potato",
+    "minecraft:cooked_beef",
+    "minecraft:cooked_chicken",
+    "minecraft:cooked_cod",
+    "minecraft:cooked_mutton",
+    "minecraft:cooked_porkchop",
+    "minecraft:cooked_rabbit",
+    "minecraft:cooked_salmon",
+    "minecraft:dried_kelp_from_smelting",
+    "minecraft:glass",
+    "minecraft:charcoal",
+    "minecraft:brick",
+    "minecraft:terracotta",
+    "minecraft:stone",
+    "minecraft:smooth_stone",
+    "minecraft:deepslate",
+    "minecraft:green_dye",
+    "minecraft:lime_dye_from_smelting"
+  ],
+  "adapter": "white_lily:vanilla_cooking"
+}

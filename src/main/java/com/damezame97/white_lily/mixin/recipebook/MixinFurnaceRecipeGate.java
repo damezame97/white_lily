@@ -13,6 +13,6 @@ import org.spongepowered.asm.mixin.injection.callback.*;
 public abstract class MixinFurnaceRecipeGate {
     @Inject(method="canBurn",at=@At("HEAD"),cancellable=true)
     private void whiteLily$lockedCooking(RegistryAccess registry,Recipe<?> recipe,NonNullList<ItemStack> stacks,int max,CallbackInfoReturnable<Boolean> callback) {
-        if(recipe!=null && !recipe_machine_owner.allowed((AbstractFurnaceBlockEntity)(Object)this,recipe.getId())) callback.setReturnValue(false);
+        if(recipe!=null && !com.damezame97.white_lily.machine.machine_rules.allowed((AbstractFurnaceBlockEntity)(Object)this,recipe.getId())) callback.setReturnValue(false);
     }
 }

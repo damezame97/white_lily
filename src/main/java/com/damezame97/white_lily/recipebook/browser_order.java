@@ -10,6 +10,14 @@ public final class browser_order
     public record Key(String name,String namespace,String modName,String stableId,String variant,String category,String categoryId) {
         public Key(String name,String namespace,String modName,String stableId,String variant){this(name,namespace,modName,stableId,variant,name,"");}
         public Key { name=Objects.requireNonNullElse(net.minecraft.ChatFormatting.stripFormatting(name),"");category=Objects.requireNonNullElse(net.minecraft.ChatFormatting.stripFormatting(category),name);if(modName==null||modName.isBlank())modName=namespace; }
+        /** Material/series prefix inside the item path; categories remain the primary "use" group. */
+        public String series()
+        {
+            int colon=stableId.indexOf(':');
+            String path=colon<0?stableId:stableId.substring(colon+1);
+            int split=path.indexOf('_');
+            return split<=0?path:path.substring(0,split);
+        }
     }
     public static Comparator<Key> comparator(Mode mode,String language)
     {
@@ -17,7 +25,8 @@ public final class browser_order
         collator.setStrength(Collator.PRIMARY);
         Comparator<Key> names=(a,b)->collator.compare(a.name(),b.name());
         Comparator<Key> tie=Comparator.comparing(Key::stableId).thenComparing(Key::variant);
-        Comparator<Key> grouped=Comparator.<Key,String>comparing(Key::category,collator).thenComparing(Key::categoryId).thenComparing(names).thenComparing(tie);
+        Comparator<Key> grouped=Comparator.<Key,String>comparing(Key::category,collator)
+                .thenComparing(Key::categoryId).thenComparing(Key::series).thenComparing(names).thenComparing(tie);
         if(mode==Mode.NAME)return names.thenComparing(tie);
         if(mode==Mode.DEFAULT)return grouped;
         return Comparator.<Key,Boolean>comparing(k->!k.namespace().equals("minecraft"))

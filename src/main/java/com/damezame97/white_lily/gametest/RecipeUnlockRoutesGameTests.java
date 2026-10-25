@@ -17,6 +17,7 @@ import net.minecraft.world.item.crafting.Recipe;
 import net.minecraftforge.gametest.*;
 
 import java.util.Set;
+import java.util.List;
 
 import static com.damezame97.white_lily.gametest.MedicalGameTests.yes;
 
@@ -142,36 +143,25 @@ public final class RecipeUnlockRoutesGameTests
         }h.succeed();
     }
 
-    @GameTest(template="empty") public static void smeltingOnlyOpensTheCorrespondingRealRecipe(GameTestHelper h)
+    @GameTest(template="empty") public static void cookingUsesDeviceTablesInsteadOfPersonalGrants(GameTestHelper h)
     {
         try(var scope=new ProcessingTestPlayers(h))
         {
-            var iron=ProcessingTestPlayers.create(h);acquire(iron,Items.RAW_IRON);
-            yes(h,unlocked(iron,IRON_SMELT_RAW)&&!unlocked(iron,IRON_SMELT_ORE)&&!unlocked(iron,IRON_BLOCK)&&!unlocked(iron,IRON_NUGGET),
-                    "raw iron opens only its own smelting recipe, not ore/block/nugget routes");
-            yes(h,!unlocked(iron,BLAST_FURNACE)&&!unlocked(iron,IRON_BLAST_RAW)&&!unlocked(iron,id("iron_pickaxe")),"raw iron alone does not open the blast furnace or iron equipment");
-            var gold=ProcessingTestPlayers.create(h);acquire(gold,Items.RAW_GOLD);
-            var copper=ProcessingTestPlayers.create(h);acquire(copper,Items.RAW_COPPER);
-            yes(h,unlocked(gold,id("gold_ingot_from_smelting_raw_gold"))&&!unlocked(gold,id("gold_block"))&&!unlocked(gold,id("golden_pickaxe")),
-                    "raw gold opens only its own smelt, not gold equipment or storage conversion");
-            yes(h,unlocked(copper,id("copper_ingot_from_smelting_raw_copper"))&&!unlocked(copper,id("copper_block")),
-                    "raw copper opens only its own smelt, not copper building routes");
-            var sand=ProcessingTestPlayers.create(h);acquire(sand,Items.SAND);
-            yes(h,unlocked(sand,id("glass"))&&!unlocked(sand,id("glass_pane")),"sand opens glass smelting, not glass products");
-            var clay=ProcessingTestPlayers.create(h);acquire(clay,Items.CLAY_BALL);
-            acquire(clay,Items.CLAY);
-            yes(h,unlocked(clay,id("brick"))&&unlocked(clay,id("terracotta")),"clay ball/block open their real brick/terracotta smelts");
-            var stone=ProcessingTestPlayers.create(h);acquire(stone,Items.COBBLESTONE);
-            yes(h,unlocked(stone,id("stone"))&&!unlocked(stone,id("smooth_stone")),"cobblestone smelts to stone but does not skip to smooth stone");
-            acquire(stone,Items.STONE);
-            yes(h,unlocked(stone,id("smooth_stone")),"stone opens the real stone-to-smooth-stone smelt");
-            var deep=ProcessingTestPlayers.create(h);acquire(deep,Items.COBBLED_DEEPSLATE);
-            yes(h,unlocked(deep,id("deepslate")),"cobbled deepslate opens the real deepslate smelt");
-            var food=ProcessingTestPlayers.create(h);acquire(food,Items.BEEF);
-            yes(h,unlocked(food,id("cooked_beef"))&&!unlocked(food,id("cooked_porkchop")),"one food opens only its own smelting/smoking recipes");
+            var p=ProcessingTestPlayers.create(h);
+            List<String> cooking=List.of("glass","brick","terracotta","stone","smooth_stone","deepslate",
+                    "charcoal","cooked_beef","cooked_beef_from_smoking","iron_ingot_from_blasting_raw_iron");
+            for(String name:cooking) {
+                yes(h,h.getLevel().getRecipeManager().byKey(id(name)).isPresent(),"device recipe exists: "+name);
+                yes(h,!unlocked(p,id(name))&&!recipe_unlocks.requiresUnlock(p,id(name)),"no personal cooking gate: "+name);
+            }
+            for(Item item:List.of(Items.SAND,Items.CLAY_BALL,Items.CLAY,Items.COBBLESTONE,Items.STONE,
+                    Items.COBBLED_DEEPSLATE,Items.BEEF,Items.RAW_IRON,Items.RAW_GOLD,Items.RAW_COPPER,Items.FURNACE)) acquire(p,item);
+            for(String name:cooking)yes(h,!unlocked(p,id(name)),"acquisition does not award cooking permission: "+name);
+            yes(h,com.damezame97.white_lily.machine.machine_rules.recipes(h.getLevel().getRecipeManager(),id("furnace")).stream().noneMatch(r -> r.getId().equals(IRON_SMELT_RAW)),"ore recipe stays outside the original furnace view");
+            yes(h,!unlocked(p,id("glass_pane"))&&!unlocked(p,IRON_BLOCK)&&!unlocked(p,IRON_NUGGET),"processing ingredients do not open unrelated crafting");
+            yes(h,unlocked(p,id("stone_bricks")),"stone acquisition still opens stone brick crafting");
         }h.succeed();
     }
-
     @GameTest(template="empty") public static void furnaceCoalAndCharcoalRoutesUseActualRecipes(GameTestHelper h)
     {
         try(var scope=new ProcessingTestPlayers(h))
@@ -180,12 +170,12 @@ public final class RecipeUnlockRoutesGameTests
             yes(h,unlocked(furnace,id("smoker")),"obtaining a furnace unlocks the smoker recipe");
             boolean charcoal=false;
             for(Recipe<?> recipe:h.getLevel().getRecipeManager().getRecipes())
-                if(recipe.getResultItem(h.getLevel().registryAccess()).is(Items.CHARCOAL)&&unlocked(furnace,recipe.getId()))charcoal=true;
-            yes(h,charcoal,"obtaining a furnace unlocks at least one real charcoal smelting recipe");
+                if(recipe.getResultItem(h.getLevel().registryAccess()).is(Items.CHARCOAL)&&!recipe_unlocks.requiresUnlock(furnace,recipe.getId())&&!unlocked(furnace,recipe.getId()))charcoal=true;
+            yes(h,charcoal,"charcoal is device-available without awarding personal smelting permission");
             var coal=ProcessingTestPlayers.create(h);acquire(coal,Items.COAL);
-            yes(h,unlocked(coal,TORCH),"coal alone opens the torch recipe");
+            yes(h,unlocked(coal,TORCH)&&unlocked(coal,id("coal_block")),"coal opens torch and coal block recipes");
             var charcoalItem=ProcessingTestPlayers.create(h);acquire(charcoalItem,Items.CHARCOAL);
-            yes(h,unlocked(charcoalItem,TORCH),"charcoal alone opens the torch recipe");
+            yes(h,unlocked(charcoalItem,TORCH)&&!unlocked(charcoalItem,id("coal_block")),"charcoal opens torches but not coal blocks");
         }h.succeed();
     }
 
@@ -194,16 +184,21 @@ public final class RecipeUnlockRoutesGameTests
         try(var scope=new ProcessingTestPlayers(h))
         {
             var ironFirst=ProcessingTestPlayers.create(h);acquire(ironFirst,Items.IRON_INGOT);acquire(ironFirst,Items.COBBLESTONE);
-            yes(h,unlocked(ironFirst,FURNACE)&&unlocked(ironFirst,BLAST_FURNACE),"iron ingot before furnace still unlocks the blast furnace");
+            yes(h,unlocked(ironFirst,FURNACE)&&!unlocked(ironFirst,BLAST_FURNACE),"iron plus furnace crafting knowledge does not bypass actual furnace acquisition");
+            acquire(ironFirst,Items.FURNACE);
+            yes(h,unlocked(ironFirst,BLAST_FURNACE),"obtaining a furnace opens blast furnace crafting");
             var furnaceFirst=ProcessingTestPlayers.create(h);acquire(furnaceFirst,Items.COBBLESTONE);acquire(furnaceFirst,Items.IRON_INGOT);
-            yes(h,unlocked(furnaceFirst,BLAST_FURNACE),"furnace-recipe unlock before iron still unlocks the blast furnace");
+            acquire(furnaceFirst,Items.FURNACE);
+            yes(h,unlocked(furnaceFirst,BLAST_FURNACE),"obtaining a furnace opens blast furnace crafting in reverse order");
             var oreFirst=ProcessingTestPlayers.create(h);acquire(oreFirst,Items.RAW_IRON);acquire(oreFirst,Items.COBBLESTONE);acquire(oreFirst,Items.IRON_INGOT);
-            yes(h,unlocked(oreFirst,BLAST_FURNACE)&&unlocked(oreFirst,IRON_BLAST_RAW)&&!unlocked(oreFirst,IRON_BLAST_ORE),
-                    "raw iron seen before blast furnace is backfilled after both conditions, without opening iron ore");
+            acquire(oreFirst,Items.FURNACE);
+            yes(h,unlocked(oreFirst,BLAST_FURNACE)&&!unlocked(oreFirst,IRON_BLAST_RAW)&&!unlocked(oreFirst,IRON_BLAST_ORE),
+                    "furnace acquisition opens device crafting but does not award any mineral processing permission");
             var blastFirst=ProcessingTestPlayers.create(h);acquire(blastFirst,Items.COBBLESTONE);acquire(blastFirst,Items.IRON_INGOT);acquire(blastFirst,Items.COBBLED_DEEPSLATE);
+            acquire(blastFirst,Items.FURNACE);
             yes(h,unlocked(blastFirst,BLAST_FURNACE),"blast furnace recipe is unlocked for the reverse order");
             acquire(blastFirst,Items.RAW_GOLD);
-            yes(h,unlocked(blastFirst,id("gold_ingot_from_blasting_raw_gold")),"new raw gold after blast furnace is backfilled");
+            yes(h,!unlocked(blastFirst,id("gold_ingot_from_blasting_raw_gold")),"new raw gold does not award personal blasting permission");
             yes(h,!unlocked(blastFirst,id("gold_ingot_from_blasting_gold_ore")),"unseen gold ore is not backfilled");
         }h.succeed();
     }

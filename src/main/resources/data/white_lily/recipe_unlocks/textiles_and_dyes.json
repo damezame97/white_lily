@@ -335,6 +335,9 @@
       "items": [
         "#white_lily:dye_sources",
         "#forge:dyes"
+      ],
+      "recipe_types": [
+        "crafting"
       ]
     }
   ]

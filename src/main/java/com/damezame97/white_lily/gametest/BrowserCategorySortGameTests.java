@@ -50,6 +50,8 @@ public final class BrowserCategorySortGameTests {
         yes(h,unknown.get(0).name().equals("Apple")&&unknown.get(5).name().equals("Zebra"),"unknowns use own names, not a giant Other group");
         var chinese=List.of(key("张木","b","z","原木"),key("阿木","a","a","原木"),key("八板","b","b","木板"));
         yes(h,chinese.stream().sorted(browser_order.comparator(browser_order.Mode.DEFAULT,"zh_cn")).map(browser_order.Key::name).toList().equals(List.of("八板","阿木","张木")),"category Mu before Yuan and A before Zhang use actual pinyin");
+        var series=List.of(key("A oak","minecraft","oak_stairs","Stairs"),key("Z birch","minecraft","birch_stairs","Stairs"));
+        yes(h,series.stream().sorted(browser_order.comparator(browser_order.Mode.DEFAULT,"en_us")).map(browser_order.Key::name).toList().equals(List.of("Z birch","A oak")),"same use groups by material series before display name");
         h.succeed();
     }
     @GameTest(template="empty") public static void filteredScaledGridAddsOnlyModuleHeadersAndNoCategorySpaces(GameTestHelper h){

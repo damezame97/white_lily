@@ -1,0 +1,27 @@
+{
+  "key": {
+    "F": {
+      "item": "minecraft:furnace"
+    },
+    "C": {
+      "item": "minecraft:coal_block"
+    },
+    "S": {
+      "item": "minecraft:smooth_stone"
+    },
+    "B": {
+      "item": "minecraft:stone_bricks"
+    }
+  },
+  "type": "minecraft:crafting_shaped",
+  "category": "misc",
+  "result": {
+    "item": "minecraft:blast_furnace",
+    "count": 1
+  },
+  "pattern": [
+    "BBB",
+    "BFB",
+    "SCS"
+  ]
+}
