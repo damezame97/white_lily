@@ -80,7 +80,12 @@ public final class recipe_browser
     @SubscribeEvent public static void beforeFrame(ScreenEvent.Render.Pre event){renderedBeforeTooltip=false;recipe_browser_tooltips.frame();}
     /** Called at the container tooltip boundary, after slots but before their native tooltip. */
     public static void beforeContainerTooltip(AbstractContainerScreen<?> screen,GuiGraphics g,int mx,int my)
-    {crafting_choice_client.renderButton(screen,g,mx,my);Panel p=panel(screen);if(p!=null&&!renderedBeforeTooltip){renderedBeforeTooltip=true;p.renderBase(g,mx,my,0);}}
+    {
+        crafting_choice_client.renderButton(screen,g,mx,my);
+        effect_sidebar.renderBase(screen,g,mx,my);
+        Panel p=panel(screen);
+        if(p!=null&&!renderedBeforeTooltip){renderedBeforeTooltip=true;p.renderBase(g,mx,my,0);}
+    }
     /** A foreground popup owns the mouse: do not let a native slot tooltip cover it. */
     public static boolean blocksContainerTooltip(AbstractContainerScreen<?> screen,int mx,int my)
     {Panel p=panel(screen);return p!=null&&p.blocksContainerTooltip(mx,my);}
@@ -125,11 +130,13 @@ public final class recipe_browser
         GuiGraphics graphics = event.getGuiGraphics();
         if(!renderedBeforeTooltip){renderedBeforeTooltip=true;current.renderBase(graphics,event.getMouseX(),event.getMouseY(),event.getPartialTick());}
         current.renderForeground(graphics,event.getMouseX(),event.getMouseY());
+        effect_sidebar.renderForeground(event.getScreen(),graphics,event.getMouseX(),event.getMouseY());
     }
 
     @SubscribeEvent(priority = EventPriority.HIGHEST)
     public static void click(ScreenEvent.MouseButtonPressed.Pre event)
     {
+        if(effect_sidebar.click(event.getScreen(),event.getMouseX(),event.getMouseY(),event.getButton())){event.setCanceled(true);return;}
         if(crafting_choice_client.click(event.getScreen(),event.getMouseX(),event.getMouseY(),event.getButton())){event.setCanceled(true);return;}
         if(dispatch(com.mojang.blaze3d.platform.InputConstants.Type.MOUSE.getOrCreate(event.getButton()))){event.setCanceled(true);return;}
         Panel current = panel(event.getScreen());
@@ -285,7 +292,9 @@ public final class recipe_browser
             else
             {
                 AbstractContainerScreen<?> screen = (AbstractContainerScreen<?>) parent;
-                int right = screen.getGuiLeft() + screen.getXSize();
+                int baseRight = screen.getGuiLeft() + screen.getXSize();
+                // The effect rail owns the space between the inventory and the browser.
+                int right = baseRight + effect_sidebar.reservedWidth(screen);
                 int available = parent.width - right - 4;
                 int panelHeight = Math.max(40, parent.height - 8);
                 spaceShort = available < MIN_SIDEBAR_WIDTH || panelHeight < minHeight;
@@ -304,7 +313,7 @@ public final class recipe_browser
                             tabVisible=false;
                             for(int candidate=2;candidate+18<=parent.width;candidate+=20){final int tx=candidate,ty=2;
                                 boolean slot=screen.getMenu().slots.stream().anyMatch(s->tx<screen.getGuiLeft()+s.x+18&&tx+18>screen.getGuiLeft()+s.x&&ty<screen.getGuiTop()+s.y+18&&ty+18>screen.getGuiTop()+s.y);
-                                if(!slot){x=tx;y=ty;tabVisible=true;break;}}
+                                if(!slot&&!effect_sidebar.overlaps(screen,tx,ty,18,18)){x=tx;y=ty;tabVisible=true;break;}}
                         }
                     }
                 }
@@ -549,7 +558,8 @@ public final class recipe_browser
                 ItemStack stack=cell.stack();
                 if(!popupOpen()&&inside(mx,my,sx,sy,cellSize,cellSize)){hovered=stack;g.fill(sx,sy,sx+cellSize,sy+cellSize,0x805B6674);}
                 g.pose().pushPose();g.pose().translate(sx,sy,0);float iconScale=cellSize/18F;g.pose().scale(iconScale,iconScale,1);g.renderItem(stack,1,1);g.renderItemDecorations(Minecraft.getInstance().font,stack,1,1);g.pose().popPose();
-                if(recipe_browser_preferences.contains(stack))g.fill(sx+cellSize-5,sy+1,sx+cellSize-1,sy+3,GOLD);
+                if(recipe_browser_preferences.contains(stack))
+                    g.fill(sx+1,sy+cellSize-1,sx+cellSize-1,sy+cellSize,GOLD);
             }
             int footer = y + h - 15;
             g.drawString(Minecraft.getInstance().font, "‹", x + 5, footer + 2, TEXT, false);

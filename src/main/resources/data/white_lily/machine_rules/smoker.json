@@ -1,0 +1,18 @@
+{
+  "deny": [],
+  "device": "minecraft:smoker",
+  "mode": "whitelist",
+  "copies": [],
+  "allow": [
+    "minecraft:baked_potato_from_smoking",
+    "minecraft:cooked_beef_from_smoking",
+    "minecraft:cooked_chicken_from_smoking",
+    "minecraft:cooked_cod_from_smoking",
+    "minecraft:cooked_mutton_from_smoking",
+    "minecraft:cooked_porkchop_from_smoking",
+    "minecraft:cooked_rabbit_from_smoking",
+    "minecraft:cooked_salmon_from_smoking",
+    "minecraft:dried_kelp_from_smoking"
+  ],
+  "adapter": "white_lily:vanilla_cooking"
+}

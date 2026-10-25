@@ -55,7 +55,8 @@ public final class TextilesGameTests {
             h.assertTrue(knows(p, "white_lily:white_sleeping_bag") && knows(p, "minecraft:blue_bed")
                     && knows(p, "minecraft:green_carpet"), "Any wool unlocks bag, all beds and carpets");
             var dye = ProcessingTestPlayers.create(h); got(dye, Items.RED_DYE);
-            h.assertTrue(knows(dye, "minecraft:white_dye") && knows(dye, "minecraft:green_dye")
+            h.assertTrue(knows(dye, "minecraft:white_dye") && !knows(dye, "minecraft:green_dye")
+                    && !recipe_unlocks.requiresUnlock(dye, id("minecraft:green_dye"))
                     && !knows(dye, "minecraft:dye_blue_wool") && !knows(dye, "minecraft:red_bed")
                     && !knows(dye, "minecraft:white_banner"), "Dye does not bypass item knowledge");
             got(dye, Items.BLACK_WOOL);
@@ -63,7 +64,9 @@ public final class TextilesGameTests {
             for (Item source : new Item[]{Items.DANDELION, Items.INK_SAC, Items.COCOA_BEANS,
                     Items.LAPIS_LAZULI, Items.BONE_MEAL, Items.CACTUS, Items.SEA_PICKLE}) {
                 var fresh = ProcessingTestPlayers.create(h); got(fresh, source);
-                h.assertTrue(knows(fresh, "minecraft:green_dye") && knows(fresh, "minecraft:white_dye"), "Dye source entry " + source);
+                h.assertTrue(!knows(fresh, "minecraft:green_dye") && knows(fresh, "minecraft:white_dye")
+                        && h.getLevel().getRecipeManager().byKey(id("minecraft:green_dye")).isPresent()
+                        && !recipe_unlocks.requiresUnlock(fresh, id("minecraft:green_dye")), "Dye crafting knowledge is personal; cooked dyes use the device table " + source);
             }
         }
         h.succeed();

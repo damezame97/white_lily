@@ -107,9 +107,9 @@ public final class items
     public static final RegistryObject<Item> SHIELD_RECIPE_BOOK =
             ITEMS.register("shield_recipe_book", () -> recipe_unlock_book.copyable(mc("shield")));
     public static final RegistryObject<Item> STONECUTTER_NOTES =
-            ITEMS.register("stonecutter_notes", () -> recipe_unlock_book.copyable(mc("stonecutter"), operation("stonecutter")));
+            ITEMS.register("stonecutter_notes", () -> recipe_unlock_book.copyable(mc("stonecutter")));
     public static final RegistryObject<Item> BLACKSMITH_FORGING_NOTES =
-            ITEMS.register("blacksmith_forging_notes", () -> recipe_unlock_book.copyable(mc("anvil"), operation("anvil")));
+            ITEMS.register("blacksmith_forging_notes", () -> recipe_unlock_book.copyable(mc("anvil")));
     public static final RegistryObject<Item> EQUIPMENT_UPGRADE_NOTES =
             ITEMS.register("equipment_upgrade_notes", () -> recipe_unlock_book.copyable(mc("smithing_table")));
     public static final RegistryObject<Item> TRANSPORT_NOTES =
@@ -225,9 +225,6 @@ public final class items
 
     private static net.minecraft.resources.ResourceLocation mc(String path)
     { return net.minecraft.resources.ResourceLocation.fromNamespaceAndPath("minecraft", path); }
-
-    private static net.minecraft.resources.ResourceLocation operation(String name)
-    { return net.minecraft.resources.ResourceLocation.fromNamespaceAndPath(white_lily.MODID, "operation/" + name); }
 
     private items()
     {

@@ -1,0 +1,18 @@
+{
+  "deny": [],
+  "device": "minecraft:blast_furnace",
+  "mode": "whitelist",
+  "copies": [],
+  "allow": [
+    "minecraft:iron_ingot_from_blasting_iron_ore",
+    "minecraft:iron_ingot_from_blasting_deepslate_iron_ore",
+    "minecraft:iron_ingot_from_blasting_raw_iron",
+    "minecraft:gold_ingot_from_blasting_gold_ore",
+    "minecraft:gold_ingot_from_blasting_deepslate_gold_ore",
+    "minecraft:gold_ingot_from_blasting_raw_gold",
+    "minecraft:copper_ingot_from_blasting_copper_ore",
+    "minecraft:copper_ingot_from_blasting_deepslate_copper_ore",
+    "minecraft:copper_ingot_from_blasting_raw_copper"
+  ],
+  "adapter": "white_lily:vanilla_cooking"
+}

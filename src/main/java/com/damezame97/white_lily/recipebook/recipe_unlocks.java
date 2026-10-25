@@ -18,6 +18,7 @@ import net.minecraftforge.eventbus.api.SubscribeEvent;
 import net.minecraftforge.fml.common.Mod;
 import net.minecraftforge.network.*;
 import net.minecraftforge.network.simple.SimpleChannel;
+import javax.annotation.Nullable;
 import java.util.*;
 import java.util.function.Supplier;
 
@@ -27,7 +28,7 @@ public final class recipe_unlocks {
     public static final String DATA_KEY="white_lily_recipe_unlocks";
     private static final Map<Player,Progress> CACHE=Collections.synchronizedMap(new WeakHashMap<>());
     private static final SimpleChannel CHANNEL=NetworkRegistry.ChannelBuilder.named(ResourceLocation.fromNamespaceAndPath("white_lily","recipe_unlocks"))
-        .networkProtocolVersion(()->"2").clientAcceptedVersions("2"::equals).serverAcceptedVersions("2"::equals).simpleChannel();
+        .networkProtocolVersion(()->"3").clientAcceptedVersions("3"::equals).serverAcceptedVersions("3"::equals).simpleChannel();
     private static boolean registered;
     private static final class Progress {
         final Set<ResourceLocation> recipes=new LinkedHashSet<>(), seen=new LinkedHashSet<>();
@@ -83,6 +84,30 @@ public final class recipe_unlocks {
         for(ResourceLocation id:progress(player).recipes) if(isUnlocked(player,id)) result.add(id);
         for(ResourceLocation id:research_catalog.recipeOwners().keySet()) if(isUnlocked(player,id)) result.add(id);
         return Set.copyOf(result);
+    }
+    /**
+     * Device-view rights: cooking recipes are never personal crafting unlocks, but the browser may
+     * reveal the already policy-filtered table once that device has entered the player's history.
+     */
+    public static Set<ResourceLocation> viewable(ServerPlayer player) {
+        if(player==null) return Set.of();
+        Progress data=progress(player);
+        Set<ResourceLocation> result=new LinkedHashSet<>();
+        com.damezame97.white_lily.machine.machine_rules.state(player.level().getRecipeManager()).tables().forEach((device,recipes)-> {
+            if(data.seen.contains(device)) recipes.forEach(recipe -> result.add(recipe.getId()));
+        });
+        return Set.copyOf(result);
+    }
+    @Nullable private static ResourceLocation cookingDevice(net.minecraft.world.item.crafting.RecipeType<?> type) {
+        if(type==net.minecraft.world.item.crafting.RecipeType.SMELTING) return net.minecraft.resources.ResourceLocation.fromNamespaceAndPath("minecraft","furnace");
+        if(type==net.minecraft.world.item.crafting.RecipeType.SMOKING) return net.minecraft.resources.ResourceLocation.fromNamespaceAndPath("minecraft","smoker");
+        if(type==net.minecraft.world.item.crafting.RecipeType.BLASTING) return net.minecraft.resources.ResourceLocation.fromNamespaceAndPath("minecraft","blast_furnace");
+        return null;
+    }
+    private static boolean cookingDeviceItem(ResourceLocation id) {
+        return id!=null && (id.equals(net.minecraft.resources.ResourceLocation.fromNamespaceAndPath("minecraft","furnace"))
+                || id.equals(net.minecraft.resources.ResourceLocation.fromNamespaceAndPath("minecraft","smoker"))
+                || id.equals(net.minecraft.resources.ResourceLocation.fromNamespaceAndPath("minecraft","blast_furnace")));
     }
     public static long revision(Player player) { return progress(player).revision; }
     /** GameTest-only: grant a non-networked fake player without touching a client snapshot. */
@@ -167,7 +192,7 @@ public final class recipe_unlocks {
         Progress data=progress(player);
         if(!allowed.equals(data.lastEffective)) { data.lastEffective=allowed; data.revision++; save(player,data); }
         if(player.connection==null) return;
-        CHANNEL.send(PacketDistributor.PLAYER.with(()->player),new Snapshot(progress(player).revision,allowed));
+        CHANNEL.send(PacketDistributor.PLAYER.with(()->player),new Snapshot(progress(player).revision,allowed,viewable(player)));
         List<Recipe<?>> add=new ArrayList<>(),remove=new ArrayList<>();
         for(Recipe<?> recipe:player.level().getRecipeManager().getRecipes()) {
             if(allowed.contains(recipe.getId())) { if(!player.getRecipeBook().contains(recipe)) add.add(recipe); }
@@ -187,9 +212,13 @@ public final class recipe_unlocks {
         if(stack.isEmpty()) return;
         ResourceLocation id=net.minecraftforge.registries.ForgeRegistries.ITEMS.getKey(stack.getItem());
         Progress data=progress(player); if(id==null || !data.seen.add(id)) return;
+        boolean viewChanged=cookingDeviceItem(id);
         boolean changed=false; for(var rule:recipe_unlock_rules.pickups()) if(recipe_unlock_rules.matches(rule.item(),stack)) changed|=grant(player,rule.grant());
         changed|=evaluateConditional(player);
-        if(changed) data.revision++; save(player,data); if(changed) { sync(player); refresh(player); }
+        if(changed) data.revision++;
+        // Discovery history is durable even when the other half of an AND condition is missing.
+        save(player,data);
+        if(changed||viewChanged) { sync(player); if(changed) refresh(player); }
     }
     public static synchronized void register() {
         if(registered) return; registered=true;
@@ -235,14 +264,24 @@ public final class recipe_unlocks {
         static TransferReply read(FriendlyByteBuf b){return new TransferReply(b.readVarInt(),b.readResourceLocation(),b.readVarInt(),b.readEnum(transfer_reason.class));}
         void handle(Supplier<NetworkEvent.Context> supplier){var context=supplier.get();context.enqueueWork(()->browser_transfer_feedback.accept(new browser_transfer_feedback.Reply(menu,recipe,request,reason)));context.setPacketHandled(true);}
     }
-    private record Snapshot(long revision,Set<ResourceLocation> recipes) {
-        void write(FriendlyByteBuf buffer) { buffer.writeLong(revision); buffer.writeVarInt(recipes.size()); recipes.forEach(buffer::writeResourceLocation); }
+    private record Snapshot(long revision,Set<ResourceLocation> recipes,Set<ResourceLocation> viewable) {
+        void write(FriendlyByteBuf buffer) {
+            buffer.writeLong(revision);
+            buffer.writeVarInt(recipes.size()); recipes.forEach(buffer::writeResourceLocation);
+            buffer.writeVarInt(viewable.size()); viewable.forEach(buffer::writeResourceLocation);
+        }
         static Snapshot read(FriendlyByteBuf buffer) {
-            long revision=buffer.readLong(); int size=buffer.readVarInt(); if(size<0 || size>100000) throw new IllegalArgumentException("Invalid recipe snapshot size");
-            Set<ResourceLocation> recipes=new LinkedHashSet<>(); for(int i=0;i<size;i++) recipes.add(buffer.readResourceLocation()); return new Snapshot(revision,Set.copyOf(recipes));
+            long revision=buffer.readLong();
+            Set<ResourceLocation> recipes=readSet(buffer);
+            Set<ResourceLocation> viewable=readSet(buffer);
+            return new Snapshot(revision,recipes,viewable);
+        }
+        private static Set<ResourceLocation> readSet(FriendlyByteBuf buffer) {
+            int size=buffer.readVarInt(); if(size<0 || size>100000) throw new IllegalArgumentException("Invalid recipe snapshot size");
+            Set<ResourceLocation> result=new LinkedHashSet<>(); for(int i=0;i<size;i++) result.add(buffer.readResourceLocation()); return Set.copyOf(result);
         }
         void handle(Supplier<NetworkEvent.Context> supplier) {
-            var context=supplier.get(); context.enqueueWork(()->recipe_unlock_client.accept(recipes,revision)); context.setPacketHandled(true);
+            var context=supplier.get(); context.enqueueWork(()->recipe_unlock_client.accept(recipes,viewable,revision)); context.setPacketHandled(true);
         }
     }
     @SubscribeEvent public static void reload(AddReloadListenerEvent event) { event.addListener(recipe_unlock_rules.INSTANCE); }

@@ -178,6 +178,8 @@ public final class IronStageGameTests
             yes(h, expanded.size() >= 3 && expanded.get(0).equals(use)
                             && expanded.get(expanded.size() - 1).equals(copy),
                     "知识书展开后依次保留学习方式、目标内容与抄录规则：" + name);
+            if (name.equals("stonecutter_notes") || name.equals("blacksmith_forging_notes"))
+                yes(h, expanded.size() == 3, "设备书仅显示阅读、合成配方和抄录说明，不显示操作权限：" + name);
         }
         ItemStack goldStack = new ItemStack(items.GOLDEN_SWORD_RECIPE_BOOK.get());
         List<Component> goldCollapsed = new ArrayList<>();
@@ -314,7 +316,7 @@ public final class IronStageGameTests
     }
 
     @GameTest(template = "empty")
-    public static void fixedBooksGrantExactRecipesAndOperationsOnly(GameTestHelper h)
+    public static void fixedBooksGrantExactCraftingRecipesOnly(GameTestHelper h)
     {
         try (var scope = new ProcessingTestPlayers(h))
         {
@@ -328,16 +330,22 @@ public final class IronStageGameTests
             ServerPlayer stone = ProcessingTestPlayers.create(h);
             ItemStack stoneBook = read(stone, items.STONECUTTER_NOTES.get());
             yes(h, stoneBook.getCount() == 0 && unlocked(stone, id("stonecutter"))
-                            && unlocked(stone, recipe_menu_gate.operation("stonecutter")),
-                    "切石机书授予设备制作与操作权限");
+                            && !unlocked(stone, recipe_menu_gate.operation("stonecutter")),
+                    "切石机书只授予设备制作，不授予操作权限");
+            yes(h, ((recipe_unlock_book) items.STONECUTTER_NOTES.get()).recipes().equals(List.of(id("stonecutter")))
+                            && read(stone, items.STONECUTTER_NOTES.get()).getCount() == 1,
+                    "切石机书无隐藏操作目标，已掌握制作后重复阅读不消耗");
             ResourceLocation stoneRecipe = stonecuttingRecipe(h, Items.STONE);
             yes(h, !unlocked(stone, stoneRecipe), "切石机书不授予所有石材切石配方");
 
             ServerPlayer anvil = ProcessingTestPlayers.create(h);
             ItemStack anvilBook = read(anvil, items.BLACKSMITH_FORGING_NOTES.get());
             yes(h, anvilBook.getCount() == 0 && unlocked(anvil, id("anvil"))
-                            && unlocked(anvil, recipe_menu_gate.operation("anvil")),
-                    "锻造书授予铁砧制作与操作权限");
+                            && !unlocked(anvil, recipe_menu_gate.operation("anvil")),
+                    "锻造书只授予铁砧制作，不授予操作权限");
+            yes(h, ((recipe_unlock_book) items.BLACKSMITH_FORGING_NOTES.get()).recipes().equals(List.of(id("anvil")))
+                            && read(anvil, items.BLACKSMITH_FORGING_NOTES.get()).getCount() == 1,
+                    "锻造书无隐藏操作目标，已掌握制作后重复阅读不消耗");
 
             ServerPlayer equipment = ProcessingTestPlayers.create(h);
             read(equipment, items.EQUIPMENT_UPGRADE_NOTES.get());
